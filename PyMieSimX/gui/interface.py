@@ -419,7 +419,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 measure=measure,
             )
         except Exception:
-            LOGGER.debug("Skipping incomplete or invalid auto-run input: %s", error)
+            LOGGER.debug("Skipping incomplete or invalid auto-run input", exc_info=True)
             return no_update, next_experiment_runs, ""
 
         LOGGER.debug(
@@ -535,7 +535,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 nearfield_mode="absolute" if "absolute" in (nearfield_mode if isinstance(nearfield_mode, list) else [nearfield_mode]) else "real",
                 include_incident_field="include" in (include_incident_field or []),
             )
-        except Exception as error:
+        except Exception:
             LOGGER.exception("Single representation render failed")
             return None, next_single_runs, ""
 
