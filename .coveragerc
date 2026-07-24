@@ -1,0 +1,25 @@
+[run]
+source = PyMieSimX
+branch = True
+relative_files = True
+parallel = True
+omit =
+    **/__init__.py
+    PyMieSimX/**/__main__.py
+
+[report]
+skip_covered = True
+show_missing = True
+precision = 2
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
+
+[paths]
+source =
+    PyMieSimX
+    /home/runner/work/PyMieSimX/PyMieSimX/PyMieSimX
+    /github/workspace/PyMieSimX

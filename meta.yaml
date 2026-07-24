@@ -1,0 +1,54 @@
+package:
+  name: pymiesimx
+  version: {{ GIT_DESCRIBE_TAG | replace("v", "") }}
+
+source:
+  git_url: https://github.com/MartinPdeS/PyMieSimX.git
+
+build:
+  number: 0
+  noarch: python
+  script: "{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
+
+requirements:
+  host:
+    - python {{ PY_VER }}*
+    - pip
+    - setuptools >=68
+  run:
+    - python {{ PY_VER }}*
+    - pymiesim >=5.1.2
+    - dash >=4.1.0
+    - gunicorn >=23.0.0  # [not win]
+    - numpy >=2.0
+    - pandas >=2.2
+    - plotly >=5.24,<7
+
+about:
+  home: https://github.com/MartinPdeS/PyMieSimX
+  license: MIT
+  license_file: LICENSE
+  summary: "Standalone graphical interface for PyMieSim."
+  description: PyMieSimX provides a Dash GUI for configuring and exploring PyMieSim simulations.
+  dev_url: https://github.com/MartinPdeS/PyMieSimX
+  keywords:
+    - optics
+    - scattering
+    - mie theory
+    - graphical interface
+
+test:
+  imports:
+    - PyMieSimX
+  requires:
+    - pytest >=8.0
+    - pytest-cov >=5.0
+  commands:
+    - python -m pytest --config-file=./pytest.ini
+  source_files:
+    - tests
+    - pytest.ini
+
+extra:
+  recipe-maintainers:
+    - MartinPdeS

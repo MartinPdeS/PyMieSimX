@@ -1,0 +1,30 @@
+name: Quality and GUI tests
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  python-quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package and quality tools
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[testing,dev]"
+      - name: Ruff
+        run: python -m ruff check PyMieSimX tests
+      - name: Mypy
+        run: python -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py
+      - name: GUI tests
+        run: python -m pytest
