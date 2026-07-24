@@ -63,7 +63,7 @@ def build_home_page(metrics: dict[str, int] | None = None):
 
 def _package_version() -> str:
     try:
-        return version("PyMieSim")
+        return version("PyMieSimX")
     except PackageNotFoundError:
         return "development"
 
