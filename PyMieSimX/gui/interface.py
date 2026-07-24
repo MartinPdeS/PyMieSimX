@@ -418,7 +418,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 detector_values=_pair_ids_with_values(detector_ids, detector_values),
                 measure=measure,
             )
-        except Exception as error:
+        except Exception:
             LOGGER.debug("Skipping incomplete or invalid auto-run input: %s", error)
             return no_update, next_experiment_runs, ""
 

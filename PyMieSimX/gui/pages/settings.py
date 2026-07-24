@@ -5,11 +5,7 @@ from __future__ import annotations
 from dash import dcc, html
 
 from PyMieSimX.gui.components import Card
-from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PARTICLE_PLOT_SETTINGS, DEFAULT_PLOT_SETTINGS, DEFAULT_SWEEP_PLOT_SETTINGS
-
-
-# Kept as a compatibility alias for callers that used the original global defaults.
-DEFAULT_PLOT_SETTINGS = DEFAULT_PARTICLE_PLOT_SETTINGS
+from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PARTICLE_PLOT_SETTINGS, DEFAULT_SWEEP_PLOT_SETTINGS
 
 
 def build_settings_page(theme: str = DEFAULT_APPLICATION_SETTINGS["theme"], plot_settings: dict | None = None):
