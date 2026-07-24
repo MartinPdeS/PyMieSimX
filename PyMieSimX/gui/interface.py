@@ -523,6 +523,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         single_runs: int,
     ):
         next_single_runs = int(single_runs or 0)
+        nearfield_values = nearfield_mode if isinstance(nearfield_mode, list) else ([nearfield_mode] if nearfield_mode else [])
         try:
             figure, summary = build_single_figure(
                 source_type=source_type,
@@ -532,7 +533,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 representation=representation,
                 projection=projection,
                 sampling=sampling or 120,
-                nearfield_mode="absolute" if "absolute" in (nearfield_mode if isinstance(nearfield_mode, list) else [nearfield_mode]) else "real",
+                nearfield_mode="absolute" if "absolute" in nearfield_values else "real",
                 include_incident_field="include" in (include_incident_field or []),
             )
         except Exception:
