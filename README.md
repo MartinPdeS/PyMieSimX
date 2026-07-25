@@ -8,7 +8,7 @@
 | PyMieSimX/gui/components/cards.py                        |       21 |       10 |        0 |        0 |     52.38% |16, 19-21, 24, 31-34, 37 |
 | PyMieSimX/gui/interface.py                               |      332 |      234 |       78 |        2 |     24.39% |82, 86-115, 123-124, 134-140, 156-161, 180-221, 258-281, 298-339, 343-344, 348-349, 353-354, 358, 362, 382-394, 405-415, 443-462, 494-524, 534-548, 557-564, 581-585, 618-636, 647-665, 677-692, 701-704, 714-727, 742-748, 753, 758-763, 768-772, 780-781 |
 | PyMieSimX/gui/layout.py                                  |       76 |       51 |       20 |        0 |     26.04% |27-87, 98, 182, 207, 250, 276-282, 287-357, 377-380, 388-391, 396-398 |
-| PyMieSimX/gui/material\_catalog.py                       |       41 |       31 |       18 |        0 |     16.95% |38-57, 65-77, 82-88 |
+| PyMieSimX/gui/material\_catalog.py                       |       41 |       31 |       18 |        0 |     16.95% |40-59, 67-79, 84-90 |
 | PyMieSimX/gui/pages/citation.py                          |        7 |        1 |        0 |        0 |     85.71% |        24 |
 | PyMieSimX/gui/pages/documentation.py                     |        8 |        3 |        0 |        0 |     62.50% |10, 65, 69 |
 | PyMieSimX/gui/pages/experiment/page.py                   |        8 |        2 |        0 |        0 |     75.00% |     15-16 |
@@ -16,14 +16,14 @@
 | PyMieSimX/gui/pages/field\_syntax.py                     |       15 |        8 |        0 |        0 |     46.67% |10, 50-51, 61-62, 69-70, 77 |
 | PyMieSimX/gui/pages/home.py                              |       17 |        9 |        0 |        0 |     47.06% |11-12, 65-68, 73, 101, 121 |
 | PyMieSimX/gui/pages/install\_local.py                    |       12 |        3 |        0 |        0 |     75.00% |16, 32, 37 |
-| PyMieSimX/gui/pages/sellmeier.py                         |       10 |        6 |        2 |        0 |     33.33% |     11-32 |
+| PyMieSimX/gui/pages/sellmeier.py                         |       18 |       11 |        2 |        0 |     35.00% |11-43, 95, 122, 149 |
 | PyMieSimX/gui/pages/settings.py                          |       22 |       11 |        0 |        0 |     50.00% |13-16, 41-42, 46, 56, 79, 83, 87 |
 | PyMieSimX/gui/pages/single/page.py                       |        6 |        1 |        0 |        0 |     83.33% |        13 |
 | PyMieSimX/gui/pages/single/sections/representations.py   |        5 |        1 |        0 |        0 |     80.00% |         9 |
 | PyMieSimX/gui/pages/single/sections/setup.py             |       10 |        3 |        0 |        0 |     70.00% |11, 15, 19 |
-| PyMieSimX/gui/parsing.py                                 |       87 |       27 |       48 |       17 |     62.96% |16, 19, 24, 30, 34-40, 50, 53, 59-61, 71, 84-89, 97, 100, 103, 114, 119, 125, 129, 149 |
+| PyMieSimX/gui/parsing.py                                 |      112 |       37 |       66 |       20 |     61.24% |24, 27-29, 32, 37, 46, 51, 59, 64-75, 85, 88, 94-96, 106, 119-124, 132, 135, 138, 149, 154, 160, 164, 184 |
 | PyMieSimX/gui/services.py                                |      375 |      222 |      120 |       11 |     37.98% |152-154, 162-245, 275-284, 342-348, 353-374, 379-478, 483-491, 503-\>505, 534, 546-\>545, 549-\>556, 556-\>560, 561, 573-577, 582-589, 594-625, 637-642, 673, 678, 683-700, 705-714, 732-735 |
-| **TOTAL**                                                | **1095** |  **632** |  **286** |   **30** | **38.02%** |           |
+| **TOTAL**                                                | **1128** |  **647** |  **304** |   **33** | **38.55%** |           |
 
 2 files skipped due to complete coverage.
 
