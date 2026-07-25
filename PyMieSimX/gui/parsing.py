@@ -10,12 +10,25 @@ from PyMieSim.experiment.polarization_set import PolarizationSet
 from PyMieSim.material import SellmeierMaterial, SellmeierMedium, TabulatedMaterial
 
 
+MAX_EXPRESSION_POINTS = 500
+
+
 def parse_expression(raw_value: Any) -> Any:
-    """Parse a scalar, CSV sequence, or ``start:end:count`` specification."""
+    """Parse scalars, lists, or linear/logarithmic range specifications.
+
+    Ranges use ``start:stop:count`` for linear spacing (the default),
+    ``lin:start:stop:count`` for explicit linear spacing, or
+    ``log:start:stop:count`` for base-ten logarithmic spacing.
+    """
     if raw_value is None:
         return None
 
-    if isinstance(raw_value, (int, float, complex, np.ndarray, list, tuple)):
+    if isinstance(raw_value, (np.ndarray, list, tuple)):
+        if len(raw_value) > MAX_EXPRESSION_POINTS:
+            raise ValueError(f"An expression cannot contain more than {MAX_EXPRESSION_POINTS} points.")
+        return raw_value
+
+    if isinstance(raw_value, (int, float, complex)):
         return raw_value
 
     text = str(raw_value).strip()
@@ -23,20 +36,42 @@ def parse_expression(raw_value: Any) -> Any:
     if text == "":
         return None
 
-    if text.count(":") == 2:
-        start_text, stop_text, count_text = [part.strip() for part in text.split(":")]
+    parts = [part.strip() for part in text.split(":")]
+    if len(parts) in {3, 4}:
+        mode = "lin"
+        if len(parts) == 4:
+            mode, *parts = parts
+            mode = mode.lower()
+            if mode not in {"lin", "log"}:
+                raise ValueError("Range mode must be 'lin' or 'log'.")
+
+        start_text, stop_text, count_text = parts
         count = int(float(count_text))
         if count <= 0:
             raise ValueError("Range count must be positive.")
-        return np.linspace(float(start_text), float(stop_text), count)
+        if count > MAX_EXPRESSION_POINTS:
+            raise ValueError(f"A range cannot contain more than {MAX_EXPRESSION_POINTS} points.")
+
+        start = float(start_text)
+        stop = float(stop_text)
+        if mode == "log":
+            if start <= 0 or stop <= 0:
+                raise ValueError("Logarithmic ranges require positive start and stop values.")
+            return np.geomspace(start, stop, count)
+        return np.linspace(start, stop, count)
 
     if "," in text:
         tokens = [_parse_scalar_or_text(token.strip()) for token in text.split(",") if token.strip()]
 
         if all(not isinstance(token, str) for token in tokens):
             dtype = complex if any(isinstance(token, complex) and not isinstance(token, bool) for token in tokens) else float
-            return np.asarray(tokens, dtype=dtype)
+            values = np.asarray(tokens, dtype=dtype)
+            if len(values) > MAX_EXPRESSION_POINTS:
+                raise ValueError(f"An expression cannot contain more than {MAX_EXPRESSION_POINTS} points.")
+            return values
 
+        if len(tokens) > MAX_EXPRESSION_POINTS:
+            raise ValueError(f"An expression cannot contain more than {MAX_EXPRESSION_POINTS} points.")
         return [str(token) for token in tokens]
 
     return _parse_scalar_or_text(text)

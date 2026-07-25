@@ -9,11 +9,14 @@
     "crown",
     "flint",
     "BAK1",
-    "BAF10"
+    "BAF10",
+    "gold",
+    "silver"
   ],
   "sellmeier_reference": [
     {
       "material": "fused_silica",
+      "formula": "Formula 1",
       "B1": "0.6961663",
       "B2": "0.4079426",
       "B3": "0.8974794",
@@ -23,6 +26,7 @@
     },
     {
       "material": "BK7",
+      "formula": "Formula 2",
       "B1": "1.18318503",
       "B2": "0.0871756426",
       "B3": "1.03133701",
@@ -32,6 +36,7 @@
     },
     {
       "material": "water",
+      "formula": "Formula 2",
       "B1": "0.5672526103",
       "B2": "0.1736581125",
       "B3": "0.02121531502",
@@ -41,15 +46,18 @@
     },
     {
       "material": "air",
+      "formula": "Formula 6",
       "B1": "0.05792105",
       "B2": "0.00167917",
       "B3": "—",
       "C1_um2": "238.0185",
       "C2_um2": "57.362",
-      "C3_um2": "—"
+      "C3_um2": "—",
+      "parameters": "B1=0.05792105, C1=238.0185; B2=0.00167917, C2=57.362"
     },
     {
       "material": "polystyren",
+      "formula": "Formula 2",
       "B1": "1.4435",
       "B2": "—",
       "B3": "—",
@@ -59,15 +67,18 @@
     },
     {
       "material": "soda_lime_glass",
+      "formula": "Formula 5",
       "B1": "—",
       "B2": "—",
       "B3": "—",
       "C1_um2": "—",
       "C2_um2": "—",
-      "C3_um2": "—"
+      "C3_um2": "—",
+      "parameters": "A=1.5130; B1=-0.003169, C1=2; B2=0.003962, C2=-2"
     },
     {
       "material": "crown",
+      "formula": "Formula 2",
       "B1": "1.1273555",
       "B2": "0.124412303",
       "B3": "0.827100531",
@@ -77,6 +88,7 @@
     },
     {
       "material": "flint",
+      "formula": "Formula 2",
       "B1": "1.34533359",
       "B2": "0.209073176",
       "B3": "0.937357162",
@@ -86,6 +98,7 @@
     },
     {
       "material": "BAK1",
+      "formula": "Formula 2",
       "B1": "1.12365662",
       "B2": "0.309276848",
       "B3": "0.881511957",
@@ -95,12 +108,35 @@
     },
     {
       "material": "BAF10",
+      "formula": "Formula 2",
       "B1": "1.5851495",
       "B2": "0.143559385",
       "B3": "1.08521269",
       "C1_um2": "0.00926681282",
       "C2_um2": "0.0424489805",
       "C3_um2": "105.613573"
+    },
+    {
+      "material": "gold",
+      "formula": "Tabulated",
+      "B1": "—",
+      "B2": "—",
+      "B3": "—",
+      "C1_um2": "—",
+      "C2_um2": "—",
+      "C3_um2": "—",
+      "parameters": "Tabulated n(lambda) and k(lambda) data"
+    },
+    {
+      "material": "silver",
+      "formula": "Tabulated",
+      "B1": "—",
+      "B2": "—",
+      "B3": "—",
+      "C1_um2": "—",
+      "C2_um2": "—",
+      "C3_um2": "—",
+      "parameters": "Tabulated n(lambda) and k(lambda) data"
     }
   ]
 }

@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import pytest
 
 from PyMieSim.units import ureg
-from PyMieSimX.gui.parsing import parse_material_values, parse_numeric_expression, parse_quantity_expression
+from PyMieSimX.gui.parsing import MAX_EXPRESSION_POINTS, parse_material_values, parse_numeric_expression, parse_quantity_expression
 from PyMieSimX.gui.services import available_measures, build_detector_set, build_single_figure, run_experiment
 
 
@@ -14,6 +15,21 @@ def test_parse_quantity_expression_supports_ranges():
     assert len(quantity) == 5
     assert quantity.units == ureg.nanometer
     assert np.isclose(quantity.magnitude[-1], 800)
+
+
+def test_parse_quantity_expression_supports_linear_and_log_ranges():
+    linear = parse_quantity_expression("lin:0:1:100", ureg.dimensionless)
+    implicit_linear = parse_quantity_expression("0:1:100", ureg.dimensionless)
+    logarithmic = parse_quantity_expression("log:1:1000:4", ureg.dimensionless)
+
+    assert len(linear) == len(implicit_linear) == 100
+    assert np.allclose(linear.magnitude, implicit_linear.magnitude)
+    assert np.allclose(logarithmic.magnitude, [1, 10, 100, 1000])
+
+
+def test_parse_expression_rejects_more_than_500_points():
+    with pytest.raises(ValueError, match=str(MAX_EXPRESSION_POINTS)):
+        parse_quantity_expression("0:1:501", ureg.nanometer)
 
 
 def test_parse_material_values_supports_named_materials():

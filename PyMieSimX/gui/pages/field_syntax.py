@@ -47,12 +47,12 @@ def build_field_syntax_page():
 
 
 def _syntax_card():
-    examples = (("600", "One scalar value"), ("600,800,1000", "An explicit list"), ("400:1400:8", "Eight evenly spaced values"), ("LP01,HG11", "A list of names or modes"))
+    examples = (("600", "One scalar value"), ("600,800,1000", "An explicit list"), ("0:1:100", "100 linearly spaced values (default)"), ("lin:0:1:100", "Explicit linear spacing"), ("log:1:1000:100", "100 logarithmically spaced values"), ("LP01,HG11", "A list of names or modes"))
     return html.Section(
         className=Card.classes(color="blue", extra="panel documentation-detail-card"),
         children=[
             html.Div(className="card-header panel-header", children=[html.H2("Field syntax")]),
-            html.Div(className="card-body", children=[html.P("Most text fields accept compact batch input. The same notation works for optical quantities, material values, angles, and named modes."), html.Div([html.Div(className="documentation-syntax-row", children=[html.Code(value), html.Span(description)]) for value, description in examples], className="documentation-syntax-list"), html.P("Keep the X axis on a field that actually varies if you want a clean one-dimensional plot.", className="documentation-callout")]),
+            html.Div(className="card-body", children=[html.P("Most text fields accept compact batch input. The same notation works for optical quantities, material values, angles, and named modes. Ranges are limited to 500 points."), html.Div([html.Div(className="documentation-syntax-row", children=[html.Code(value), html.Span(description)]) for value, description in examples], className="documentation-syntax-list"), html.P("Keep the X axis on a field that actually varies if you want a clean one-dimensional plot.", className="documentation-callout")]),
         ],
     )
 

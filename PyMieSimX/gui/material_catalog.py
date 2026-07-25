@@ -20,6 +20,8 @@ _FALLBACK_MATERIALS = [
     "flint",
     "BAK1",
     "BAF10",
+    "gold",
+    "silver",
 ]
 
 _FALLBACK_SELLMEIER_REFERENCE = {
