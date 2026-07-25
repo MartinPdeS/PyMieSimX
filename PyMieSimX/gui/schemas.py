@@ -42,14 +42,14 @@ SCATTERER_FIELDS = {
     ),
     "InfiniteCylinderSet": (
         FieldSpec("diameter", "Diameter", "quantity", "400:1400:3", ureg.nanometer),
-        FieldSpec("material", "Material", "material", "1.4"),
+        FieldSpec("material", "Material", "material", "1.4", help_text="Use refractive indices (for example 1.45) or named materials (for example gold)."),
         FieldSpec("medium", "Medium", "medium", "1.0"),
     ),
     "CoreShellSet": (
         FieldSpec("core_diameter", "Core Diameter", "quantity", "800:1000:3", ureg.nanometer),
         FieldSpec("shell_thickness", "Shell Thickness", "quantity", "300", ureg.nanometer),
-        FieldSpec("core_material", "Core Material", "material", "1.4"),
-        FieldSpec("shell_material", "Shell Material", "material", "1.5"),
+        FieldSpec("core_material", "Core Material", "material", "1.4", help_text="Use refractive indices or named materials (for example fused_silica)."),
+        FieldSpec("shell_material", "Shell Material", "material", "1.5", help_text="Use refractive indices or named materials (for example silver)."),
         FieldSpec("medium", "Medium", "medium", "1.0"),
     ),
 }
@@ -100,19 +100,19 @@ SINGLE_SOURCE_FIELDS = {
 SINGLE_SCATTERER_FIELDS = {
     "Sphere": (
         FieldSpec("diameter", "Diameter", "quantity", "200", ureg.nanometer),
-        FieldSpec("material", "Material", "material", "1.4"),
+        FieldSpec("material", "Material", "material", "1.4", help_text="Use refractive indices (for example 1.45) or named materials (for example gold)."),
         FieldSpec("medium", "Medium", "medium", "1.0"),
     ),
     "InfiniteCylinder": (
         FieldSpec("diameter", "Diameter", "quantity", "200", ureg.nanometer),
-        FieldSpec("material", "Material", "material", "1.4"),
+        FieldSpec("material", "Material", "material", "1.4", help_text="Use refractive indices (for example 1.45) or named materials (for example gold)."),
         FieldSpec("medium", "Medium", "medium", "1.0"),
     ),
     "CoreShell": (
         FieldSpec("core_diameter", "Core Diameter", "quantity", "120", ureg.nanometer),
         FieldSpec("shell_thickness", "Shell Thickness", "quantity", "40", ureg.nanometer),
-        FieldSpec("core_material", "Core Material", "material", "1.4"),
-        FieldSpec("shell_material", "Shell Material", "material", "1.5"),
+        FieldSpec("core_material", "Core Material", "material", "1.4", help_text="Use refractive indices or named materials (for example fused_silica)."),
+        FieldSpec("shell_material", "Shell Material", "material", "1.5", help_text="Use refractive indices or named materials (for example silver)."),
         FieldSpec("medium", "Medium", "medium", "1.0"),
     ),
 }

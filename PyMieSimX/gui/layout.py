@@ -5,6 +5,7 @@ from __future__ import annotations
 from dash import dcc, html
 
 from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PLOT_SETTINGS
+from PyMieSimX.gui.material_catalog import material_dropdown_options
 from PyMieSimX.gui.schemas import FieldSpec, SECTION_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS
 
 
@@ -285,6 +286,74 @@ def render_field(section: str, field_spec: FieldSpec):
     """Render one schema field as a labeled text input."""
     persistence = "parameter-sweep-defaults-v2" if section in {"source", "scatterer", "detector"} else True
     default_class = " field-input-default" if section == "detector" and field_spec.name in {"polarization_filter", "medium"} else ""
+
+    if field_spec.kind == "material":
+        default_text = str(field_spec.default)
+        default_is_named = any(char.isalpha() for char in default_text)
+        named_options = material_dropdown_options()
+        default_from_catalog = named_options[0]["value"] if named_options else "fused_silica"
+        named_default = default_text if default_is_named else default_from_catalog
+        return html.Div(
+            className="field-block",
+            children=[
+                html.Label(_format_field_label(field_spec)),
+                html.Button(
+                    className="material-mode-toggle is-material" if default_is_named else "material-mode-toggle is-index",
+                    id={"kind": "material-toggle", "section": section, "name": field_spec.name},
+                    n_clicks=1 if default_is_named else 0,
+                    type="button",
+                    children=[
+                        html.Span("RI", className="material-mode-label material-mode-label-ri"),
+                        html.Span(className="material-mode-knob"),
+                        html.Span("Material", className="material-mode-label material-mode-label-material"),
+                    ],
+                ),
+                html.Div(
+                    className="material-field-controls",
+                    children=[
+                        dcc.Store(
+                            id={"kind": "material-ri-value", "section": section, "name": field_spec.name},
+                            data=default_text if not default_is_named else "1.4",
+                        ),
+                        html.Div(
+                            id={"kind": "material-ri-input-wrapper", "section": section, "name": field_spec.name},
+                            style={"display": "none"} if default_is_named else {},
+                            children=[
+                                dcc.Input(
+                                    id={"kind": "field", "section": section, "name": field_spec.name},
+                                    type="text",
+                                    value=field_spec.default,
+                                    debounce=False,
+                                    placeholder=field_spec.placeholder or "1.45 or 1.45+0.01j",
+                                    className=f"field-input{default_class}",
+                                    persistence=persistence,
+                                    persistence_type="session",
+                                ),
+                            ],
+                        ),
+                        html.Div(
+                            id={"kind": "material-dropdown-wrapper", "section": section, "name": field_spec.name},
+                            style={} if default_is_named else {"display": "none"},
+                            children=[
+                                dcc.Dropdown(
+                                    id={"kind": "material-select", "section": section, "name": field_spec.name},
+                                    options=named_options,
+                                    value=named_default,
+                                    clearable=False,
+                                    searchable=True,
+                                    optionHeight=38,
+                                    maxHeight=240,
+                                    className="dashboard-dropdown material-name-select",
+                                    persistence=persistence,
+                                    persistence_type="session",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+
     return html.Div(
         className="field-block",
         children=[

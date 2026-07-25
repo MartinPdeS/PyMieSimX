@@ -45,30 +45,10 @@ def build_documentation_page():
                 children=[
                     _guide_card("yellow", "Parameter Sweep", "Sweep a parameter space", "Build source, scatterer, and detector sets, then evaluate a measure over every combination.", ["X-axis is inferred from fields with multiple values.", "Detector-free runs are supported.", "Results can be exported as CSV."], "/experiment", "Open Parameter Sweep"),
                     _guide_card("blue", "Particle Explorer", "Understand one setup", "Inspect angular amplitudes, polarization, phase functions, or far-field intensity for one source and scatterer.", ["Choose a representation.", "Control angular sampling.", "Render the figure on demand."], "/single", "Open Particle Explorer"),
+                    _guide_card("green", "Material model", "Sellmeier relation", "Understand dispersive refractive-index modeling and check the coefficient table used for material workflows.", ["See the Sellmeier equation.", "Review coefficient values.", "Map values to material inputs."], "/documentation/sellmeier", "Open Sellmeier reference"),
+                    _guide_card("blue", "Input reference", "Field syntax & vocabulary", "Learn compact field notation, detector definitions, and the model terms used throughout the dashboard.", ["Enter scalars, lists, and ranges.", "Understand detector choices.", "Review supported model families."], "/documentation/field-syntax", "Open field reference"),
                     _guide_card("cyan", "Plot settings", "Make figures your own", "Set typography, line and marker sizes, grid visibility, legend visibility, and light or dark plot styling.", ["Preferences are saved in this browser.", "Settings apply to both workspaces.", "The application theme is controlled here."], "/settings", "Open Settings"),
                     _guide_card("purple", "Citation", "Reference the project", "Find the publication details and ready-to-copy BibTeX entry for work that uses PyMieSim.", ["Publication DOI is included.", "BibTeX is formatted for direct copying.", "Citation guidance is kept with the reference."], "/citation", "View Citation"),
-                ],
-            ),
-            html.Div(
-                className="documentation-columns",
-                children=[
-                    _syntax_card(),
-                    _vocabulary_card(),
-                ],
-            ),
-            html.Section(
-                className=Card.classes(color="green", extra="panel documentation-models"),
-                children=[
-                    html.Div(className="card-header panel-header", children=[html.H2("Supported model families")]),
-                    html.Div(
-                        className="card-body documentation-model-grid",
-                        children=[
-                            _model_group("Sources", "Gaussian", "Plane wave"),
-                            _model_group("Scatterers", "Sphere", "Infinite cylinder", "Core-shell"),
-                            _model_group("Detectors", "Photodiode", "Coherent mode", "No detector"),
-                            _model_group("Representations", "S1 / S2", "Stokes", "SPF", "Far-field"),
-                        ],
-                    ),
                 ],
             ),
             html.Section(
@@ -80,7 +60,6 @@ def build_documentation_page():
             ),
         ],
     )
-
 
 def _step(number: str, title: str, description: str):
     return html.Div(className="documentation-step", children=[html.Span(number, className="documentation-step-number"), html.Div([html.H3(title), html.P(description)])])
@@ -94,39 +73,3 @@ def _guide_card(color: str, eyebrow: str, title: str, description: str, bullets:
             html.Div(className="card-body", children=[html.P(description), html.Ul([html.Li(item) for item in bullets], className="documentation-bullet-list"), html.A(f"{action} →", href=href, className="inline-action")]),
         ],
     )
-
-
-def _syntax_card():
-    examples = (
-        ("600", "One scalar value"),
-        ("600,800,1000", "An explicit list"),
-        ("400:1400:8", "Eight evenly spaced values"),
-        ("LP01,HG11", "A list of names or modes"),
-    )
-    return html.Section(
-        className=Card.classes(color="orange", extra="panel documentation-detail-card"),
-        children=[
-            html.Div(className="card-header panel-header", children=[html.H2("Field syntax")]),
-            html.Div(className="card-body", children=[html.P("Most text fields accept compact batch input. The same notation works for optical quantities, material values, angles, and named modes."), html.Div([html.Div(className="documentation-syntax-row", children=[html.Code(value), html.Span(description)]) for value, description in examples], className="documentation-syntax-list"), html.P("Keep the X axis on a field that actually varies if you want a clean one-dimensional plot.", className="documentation-callout")]),
-        ],
-    )
-
-
-def _vocabulary_card():
-    rows = (
-        ("Source", "The incident illumination, such as Gaussian or plane wave."),
-        ("Scatterer", "The object being simulated, such as a sphere or core-shell particle."),
-        ("Detector", "The collection model used for detector-specific measures and coupling."),
-        ("Measure", "The quantity computed from the selected source, scatterer, and detector."),
-    )
-    return html.Section(
-        className=Card.classes(color="purple", extra="panel documentation-detail-card"),
-        children=[
-            html.Div(className="card-header panel-header", children=[html.H2("Core vocabulary")]),
-            html.Div(className="card-body documentation-definition-list", children=[html.Div([html.Strong(term), html.Span(description)]) for term, description in rows]),
-        ],
-    )
-
-
-def _model_group(title: str, *models: str):
-    return html.Div(className="documentation-model-group", children=[html.H3(title), html.Div([html.Span(model, className="documentation-model-pill") for model in models], className="documentation-model-pills")])

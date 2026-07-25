@@ -87,7 +87,7 @@ def _citation_card():
                             html.A("Support Developer", href="https://github.com/sponsors/MartinPdeS", target="_blank", rel="noopener noreferrer", className="home-button home-button-primary"),
                             html.A("Citing this work", href="/citation", className="home-button home-button-outline"),
                             html.A("PyMieSim documentation", href="https://martinpdes.github.io/PyMieSim/", target="_blank", rel="noopener noreferrer", className="home-button home-button-info"),
-                            html.A("GitHub repository", href="https://github.com/MartinPdeS/PyMieSim", target="_blank", rel="noopener noreferrer", className="home-button home-button-muted"),
+                            html.A("GitHub repository", href="https://github.com/MartinPdeS/PyMieSimX", target="_blank", rel="noopener noreferrer", className="home-button home-button-muted"),
                             html.A("Install locally (Releases)", href="/documentation/install-local", className="home-button home-button-muted"),
                         ],
                     ),

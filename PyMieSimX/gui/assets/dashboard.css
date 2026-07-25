@@ -806,6 +806,43 @@ html .rosettax-workflow-step-card--purple { border-left: 4px solid #8d6bd8 !impo
     line-height: 1.5;
 }
 
+.documentation-equation {
+    margin: 10px 0;
+    padding: 9px 12px;
+    border: 1px solid rgba(13, 110, 253, .16);
+    border-radius: 8px;
+    background: rgba(13, 110, 253, .05);
+    color: #204a74;
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: .84rem;
+    line-height: 1.45;
+    overflow-x: auto;
+}
+
+.documentation-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 4px;
+    font-size: .82rem;
+}
+
+.documentation-table th,
+.documentation-table td {
+    border: 1px solid rgba(13, 110, 253, .16);
+    padding: 7px 8px;
+    text-align: left;
+}
+
+.documentation-table th {
+    background: rgba(13, 110, 253, .08);
+    color: #204a74;
+    font-weight: 700;
+}
+
+.documentation-table td {
+    color: #52697a;
+}
+
 @media (max-width: 1000px) {
     .documentation-quickstart-body,
     .documentation-model-grid {
@@ -2427,6 +2464,80 @@ html .field-input {
     color: var(--muted);
     line-height: 1.35;
     overflow-wrap: anywhere;
+}
+
+.material-field-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+}
+
+.material-mode-toggle {
+    border: 1px solid var(--line);
+    background: var(--panel-strong);
+    border-radius: 999px;
+    padding: 4px 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.material-mode-label {
+    font-size: .84rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--muted);
+    min-width: 56px;
+    text-align: center;
+}
+
+.material-mode-knob {
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    background: #d8e1e8;
+    transform: translateX(-5px);
+    transition: background .16s ease, transform .16s ease;
+}
+
+.material-mode-toggle.is-index .material-mode-label-ri {
+    color: #0d6efd;
+}
+
+.material-mode-toggle.is-material .material-mode-label-material {
+    color: #0d6efd;
+}
+
+.material-mode-toggle.is-material .material-mode-knob {
+    transform: translateX(5px);
+    background: #0d6efd;
+}
+
+.material-mode-toggle:focus-visible {
+    outline: 0;
+    border-color: rgba(44, 120, 180, 0.65);
+    box-shadow: 0 0 0 2px rgba(44, 120, 180, 0.18);
+}
+
+.material-name-select .Select-control {
+    min-height: 48px;
+    border-radius: 12px;
+}
+
+.material-name-select .Select-placeholder,
+.material-name-select .Select-value-label,
+.material-name-select .Select-input > input {
+    line-height: 46px;
+}
+
+@media (max-width: 760px) {
+    .material-mode-label {
+        min-width: 48px;
+    }
 }
 
 .dashboard-dropdown .Select-control,

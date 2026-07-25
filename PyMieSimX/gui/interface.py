@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 import webbrowser
 from typing import Any
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 from dash import ALL, MATCH, Dash, Input, Output, State, dcc, no_update
+from flask import Flask, redirect
 
 from PyMieSimX.gui.layout import THEME_DARK, THEME_LIGHT, build_page_with_footer, create_layout, render_fields
 from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PARTICLE_PLOT_SETTINGS, DEFAULT_SWEEP_PLOT_SETTINGS
 from PyMieSimX.gui.pages.documentation import build_documentation_page
+from PyMieSimX.gui.pages.sellmeier import build_sellmeier_page
+from PyMieSimX.gui.pages.field_syntax import build_field_syntax_page
 from PyMieSimX.gui.pages.citation import build_citation_page
 from PyMieSimX.gui.pages.home import build_home_page
 from PyMieSimX.gui.pages.install_local import build_install_local_page
@@ -36,6 +42,14 @@ from PyMieSimX.gui.services import (
 
 LOGGER = logging.getLogger(__name__)
 
+GITHUB_RELEASES_URL = "https://github.com/MartinPdeS/PyMieSimX/releases"
+GITHUB_LATEST_RELEASE_API_URL = "https://api.github.com/repos/MartinPdeS/PyMieSimX/releases/latest"
+PLATFORM_HINTS = {
+    "windows": ("windows", "win", ".exe", ".msi"),
+    "macos": ("mac", "darwin", "osx", ".dmg", ".pkg"),
+    "linux": ("linux", "manylinux", "appimage", ".deb", ".rpm"),
+}
+
 
 def create_dash_app() -> Dash:
     """Create and configure the experiment dashboard Dash application."""
@@ -51,6 +65,7 @@ def create_dash_app() -> Dash:
         '<link rel="icon" type="image/svg+xml" href="/assets/pymiesim-favicon.svg?v=3">'
         '<link rel="shortcut icon" type="image/svg+xml" href="/assets/pymiesim-favicon.svg?v=3">',
     )
+    _register_latest_download_route(app.server)
 
     initial_measures = available_measures("SphereSet", "PhotodiodeSet")
     LOGGER.debug("Initial measures loaded: %s", initial_measures)
@@ -58,6 +73,46 @@ def create_dash_app() -> Dash:
     _register_callbacks(app, initial_measures)
     LOGGER.debug("Dash application initialized with %d callbacks", len(app.callback_map))
     return app
+
+
+def _register_latest_download_route(server: Flask) -> None:
+    """Register a redirect endpoint for latest platform release downloads."""
+    endpoint_name = "download_latest_release"
+    if endpoint_name in server.view_functions:
+        return
+
+    @server.get("/download/latest/<platform>")
+    def download_latest_release(platform: str):
+        platform_key = platform.lower()
+        hints = PLATFORM_HINTS.get(platform_key)
+        if not hints:
+            return redirect(GITHUB_RELEASES_URL, code=302)
+
+        try:
+            request = Request(
+                GITHUB_LATEST_RELEASE_API_URL,
+                headers={
+                    "Accept": "application/vnd.github+json",
+                    "User-Agent": "PyMieSimX-GUI",
+                },
+            )
+            with urlopen(request, timeout=5) as response:
+                payload = json.load(response)
+        except (URLError, TimeoutError, OSError, ValueError):
+            LOGGER.debug("Unable to query latest release API", exc_info=True)
+            return redirect(GITHUB_RELEASES_URL, code=302)
+
+        assets = payload.get("assets", []) if isinstance(payload, dict) else []
+        for asset in assets:
+            name = str(asset.get("name", "")).lower()
+            if not any(hint in name for hint in hints):
+                continue
+
+            download_url = asset.get("browser_download_url")
+            if isinstance(download_url, str) and download_url:
+                return redirect(download_url, code=302)
+
+        return redirect(GITHUB_RELEASES_URL, code=302)
 
 
 class OpticalSetupGUI:
@@ -147,6 +202,12 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         if route == "/documentation/install-local":
             active["documentation"] += " active"
             return build_page_with_footer(build_install_local_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+        if route == "/documentation/sellmeier":
+            active["documentation"] += " active"
+            return build_page_with_footer(build_sellmeier_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+        if route == "/documentation/field-syntax":
+            active["documentation"] += " active"
+            return build_page_with_footer(build_field_syntax_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
         if route == "/settings":
             active["settings"] += " active"
             return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
@@ -299,6 +360,38 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     @app.callback(Output("single-scatterer-fields", "children"), Input("single-scatterer-type", "value"))
     def _render_single_scatterer_fields(scatterer_type: str):
         return render_fields("single-scatterer", scatterer_type)
+
+    @app.callback(
+        Output({"kind": "material-toggle", "section": MATCH, "name": MATCH}, "className"),
+        Output({"kind": "material-ri-input-wrapper", "section": MATCH, "name": MATCH}, "style"),
+        Output({"kind": "material-dropdown-wrapper", "section": MATCH, "name": MATCH}, "style"),
+        Output({"kind": "field", "section": MATCH, "name": MATCH}, "value"),
+        Output({"kind": "material-ri-value", "section": MATCH, "name": MATCH}, "data"),
+        Input({"kind": "material-toggle", "section": MATCH, "name": MATCH}, "n_clicks"),
+        Input({"kind": "material-select", "section": MATCH, "name": MATCH}, "value"),
+        State({"kind": "field", "section": MATCH, "name": MATCH}, "value"),
+        State({"kind": "material-ri-value", "section": MATCH, "name": MATCH}, "data"),
+    )
+    def _sync_material_field_mode(
+        toggle_clicks: int | None,
+        selected_material: str | None,
+        current_value: str | None,
+        stored_ri_value: str | None,
+    ):
+        """Toggle between RI text input and named-material dropdown."""
+        use_named_material = bool((toggle_clicks or 0) % 2)
+        toggle_class = "material-mode-toggle is-material" if use_named_material else "material-mode-toggle is-index"
+        ri_style = {"display": "none"} if use_named_material else {}
+        dropdown_style = {} if use_named_material else {"display": "none"}
+        ri_value = stored_ri_value or "1.4"
+
+        if current_value and not any(char.isalpha() for char in str(current_value)):
+            ri_value = current_value
+
+        if use_named_material and selected_material:
+            return toggle_class, ri_style, dropdown_style, selected_material, ri_value
+
+        return toggle_class, ri_style, dropdown_style, ri_value, ri_value
 
     @app.callback(
         Output("measure-select", "options"),

@@ -5,7 +5,10 @@ from dash import html
 from PyMieSimX.gui.components import Card
 
 
-RELEASES_URL = "https://github.com/MartinPdeS/PyMieSim/releases"
+RELEASES_URL = "https://github.com/MartinPdeS/PyMieSimX/releases"
+WINDOWS_LATEST_URL = "/download/latest/windows"
+MACOS_LATEST_URL = "/download/latest/macos"
+LINUX_LATEST_URL = "/download/latest/linux"
 
 
 def _documentation_card(title: str, subtitle: str, body):
@@ -64,9 +67,9 @@ def build_install_local_page():
                         [
                             html.Div(
                                 [
-                                    html.A("Download Windows", href=RELEASES_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
-                                    html.A("Download macOS", href=RELEASES_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
-                                    html.A("Download Linux", href=RELEASES_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
+                                    html.A("Download Windows", href=WINDOWS_LATEST_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
+                                    html.A("Download macOS", href=MACOS_LATEST_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
+                                    html.A("Download Linux", href=LINUX_LATEST_URL, target="_blank", rel="noopener noreferrer", className="install-download-button"),
                                 ],
                                 className="install-download-buttons",
                             ),
