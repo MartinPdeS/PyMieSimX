@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+import json
+from dataclasses import dataclass
+from math import prod
 from typing import Any, Dict
 
 import numpy as np
@@ -38,6 +41,50 @@ from PyMieSimX.gui.schemas import (
 
 
 LOGGER = logging.getLogger(__name__)
+
+MAX_SWEEP_COMBINATIONS = 50_000
+MAX_RESULT_PAYLOAD_BYTES = 16 * 1024 * 1024
+RESULT_PAYLOAD_WARNING_BYTES = 8 * 1024 * 1024
+MAX_RESULT_FRAME_BYTES = 64 * 1024 * 1024
+
+
+@dataclass(frozen=True)
+class ValidationIssue:
+    """A user-facing validation problem associated with an input field."""
+
+    field: str
+    message: str
+
+    def as_dict(self) -> dict[str, str]:
+        """Return a JSON-serializable representation for Dash state."""
+        return {"field": self.field, "message": self.message}
+
+
+class ExperimentValidationError(ValueError):
+    """Raised when an experiment cannot safely be started from form values."""
+
+    def __init__(self, issues: list[ValidationIssue]):
+        self.issues = tuple(issues)
+        super().__init__("; ".join(f"{issue.field}: {issue.message}" for issue in self.issues))
+
+
+class ResultSizeLimitError(ValueError):
+    """Raised when a result is too large to safely store in Dash state."""
+
+
+@dataclass(frozen=True)
+class ResultSizeEstimate:
+    """Estimate of the serialized result payload size."""
+
+    rows: int
+    columns: int
+    estimated_bytes: int
+    warning: bool
+
+    @property
+    def display_size(self) -> str:
+        """Return a compact human-readable estimate."""
+        return _format_bytes(self.estimated_bytes)
 
 _POSITIVE_FIELDS = frozenset({
     "wavelength",
@@ -262,6 +309,16 @@ def _unit_label(value: Any, fallback: str) -> str:
     return str(units) if units is not None else fallback
 
 
+def _format_bytes(value: int) -> str:
+    """Format bytes for logs and user-facing validation messages."""
+    size = float(value)
+    for unit in ("B", "KiB", "MiB", "GiB"):
+        if size < 1024 or unit == "GiB":
+            return f"{size:.1f} {unit}" if unit != "B" else f"{int(size)} B"
+        size /= 1024
+    return f"{int(value)} B"
+
+
 def infer_variable_fields(
     *,
     source_type: str,
@@ -302,6 +359,18 @@ def run_experiment(
         detector_type,
         measure,
     )
+    issues = validate_experiment_inputs(
+        source_type=source_type,
+        source_values=source_values,
+        scatterer_type=scatterer_type,
+        scatterer_values=scatterer_values,
+        detector_type=detector_type,
+        detector_values=detector_values,
+        measure=measure,
+    )
+    if issues:
+        raise ExperimentValidationError(issues)
+
     source_set = build_source_set(source_type, source_values)
     scatterer_set = build_scatterer_set(scatterer_type, scatterer_values)
     detector_set = build_detector_set(detector_type, detector_values)
@@ -321,6 +390,15 @@ def run_experiment(
     dataframe = setup.get(measure, drop_unique_level=True)
     LOGGER.debug("Experiment returned dataframe with shape %s", getattr(dataframe, "shape", None))
     frame = pd.DataFrame(dataframe).copy()
+    frame_memory_bytes = int(frame.memory_usage(deep=True).sum())
+    LOGGER.debug("Experiment dataframe shape=%s memory_bytes=%d", frame.shape, frame_memory_bytes)
+    if frame_memory_bytes > MAX_RESULT_FRAME_BYTES:
+        LOGGER.warning("Rejecting oversized experiment dataframe memory_bytes=%d limit=%d", frame_memory_bytes, MAX_RESULT_FRAME_BYTES)
+        raise ResultSizeLimitError(
+            f"The in-memory result is {_format_bytes(frame_memory_bytes)}; the limit is {_format_bytes(MAX_RESULT_FRAME_BYTES)}. Reduce the sweep size."
+        )
+    if frame_memory_bytes >= MAX_RESULT_FRAME_BYTES // 2:
+        LOGGER.warning("Large experiment dataframe memory_bytes=%d warning_threshold=%d", frame_memory_bytes, MAX_RESULT_FRAME_BYTES // 2)
     units = {key: str(value) for key, value in dataframe.attrs.get("units", {}).items()}
 
     for column in frame.columns:
@@ -328,13 +406,179 @@ def run_experiment(
 
     parameter_columns = [column for column in frame.columns if column != measure]
 
-    return {
+    result = {
         "measure": measure,
         "units": units,
         "parameter_columns": parameter_columns,
         "rows": frame.to_dict("records"),
         "row_count": len(frame),
     }
+    payload_bytes = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
+    if payload_bytes > MAX_RESULT_PAYLOAD_BYTES:
+        LOGGER.warning("Rejecting oversized experiment result payload bytes=%d limit=%d", payload_bytes, MAX_RESULT_PAYLOAD_BYTES)
+        raise ResultSizeLimitError(
+            f"The serialized result is {_format_bytes(payload_bytes)}; the limit is {_format_bytes(MAX_RESULT_PAYLOAD_BYTES)}. Reduce the sweep size."
+        )
+    if payload_bytes >= RESULT_PAYLOAD_WARNING_BYTES:
+        LOGGER.warning("Large experiment result payload bytes=%d warning_threshold=%d", payload_bytes, RESULT_PAYLOAD_WARNING_BYTES)
+    LOGGER.info("Experiment completed rows=%d payload_bytes=%d", result["row_count"], payload_bytes)
+    return result
+
+
+def estimate_sweep_size(
+    *,
+    source_type: str,
+    source_values: Dict[str, Any],
+    scatterer_type: str,
+    scatterer_values: Dict[str, Any],
+    detector_type: str,
+    detector_values: Dict[str, Any],
+) -> int:
+    """Estimate the Cartesian-product size represented by the form values."""
+    sections = (
+        (SOURCE_FIELDS, source_type, source_values),
+        (SCATTERER_FIELDS, scatterer_type, scatterer_values),
+    )
+    if detector_type != "None":
+        sections += ((DETECTOR_FIELDS, detector_type, detector_values),)
+
+    cardinalities: list[int] = []
+    for field_groups, selected_type, raw_values in sections:
+        for field in field_groups.get(selected_type, ()):
+            raw_value = raw_values.get(field.name, field.default)
+            if field.optional and (raw_value is None or str(raw_value).strip() == ""):
+                continue
+            try:
+                parsed_value = _parse_field_value(field.kind, raw_value, field.unit)
+            except (TypeError, ValueError, KeyError):
+                continue
+            cardinalities.append(max(1, _value_cardinality(parsed_value)))
+
+    return prod(cardinalities) if cardinalities else 1
+
+
+def estimate_result_size(
+    *,
+    source_type: str,
+    source_values: Dict[str, Any],
+    scatterer_type: str,
+    scatterer_values: Dict[str, Any],
+    detector_type: str,
+    detector_values: Dict[str, Any],
+) -> ResultSizeEstimate:
+    """Estimate serialized result size before starting a computation."""
+    row_count = estimate_sweep_size(
+        source_type=source_type,
+        source_values=source_values,
+        scatterer_type=scatterer_type,
+        scatterer_values=scatterer_values,
+        detector_type=detector_type,
+        detector_values=detector_values,
+    )
+    column_count = 1 + sum(
+        len(field_groups.get(selected_type, ()))
+        for field_groups, selected_type in (
+            ((SOURCE_FIELDS, source_type), (SCATTERER_FIELDS, scatterer_type), (DETECTOR_FIELDS, detector_type))
+        )
+        if selected_type != "None"
+    )
+    # A conservative JSON estimate: numeric values, units, column names, and
+    # separators. The actual serialized size is checked after computation too.
+    estimated_bytes = int(row_count * max(64, column_count * 32))
+    return ResultSizeEstimate(
+        rows=row_count,
+        columns=column_count,
+        estimated_bytes=estimated_bytes,
+        warning=estimated_bytes >= RESULT_PAYLOAD_WARNING_BYTES,
+    )
+
+
+def validate_experiment_inputs(
+    *,
+    source_type: str,
+    source_values: Dict[str, Any],
+    scatterer_type: str,
+    scatterer_values: Dict[str, Any],
+    detector_type: str,
+    detector_values: Dict[str, Any],
+    measure: str,
+) -> list[ValidationIssue]:
+    """Validate all experiment fields and return actionable user-facing issues."""
+    issues: list[ValidationIssue] = []
+    sections = (
+        ("source", SOURCE_FIELDS, source_type, source_values),
+        ("scatterer", SCATTERER_FIELDS, scatterer_type, scatterer_values),
+    )
+    if detector_type != "None":
+        sections += (("detector", DETECTOR_FIELDS, detector_type, detector_values),)
+
+    for section_name, field_groups, selected_type, raw_values in sections:
+        field_specs = field_groups.get(selected_type)
+        if field_specs is None:
+            issues.append(ValidationIssue(section_name, f"Unknown configuration '{selected_type}'."))
+            continue
+
+        for field in field_specs:
+            raw_value = raw_values.get(field.name, field.default)
+            empty = raw_value is None or str(raw_value).strip() == ""
+            if field.optional and empty:
+                continue
+            if empty:
+                issues.append(ValidationIssue(field.name, "A value is required."))
+                continue
+            try:
+                parsed_value = _parse_field_value(field.kind, raw_value, field.unit)
+                if field.name in _POSITIVE_FIELDS:
+                    _validate_positive_field(field.name, parsed_value)
+            except (TypeError, ValueError, KeyError) as error:
+                issues.append(ValidationIssue(field.name, str(error)))
+
+    if scatterer_type in SCATTERER_TYPES and detector_type in DETECTOR_TYPES:
+        valid_measures = available_measures(scatterer_type, detector_type)
+        if measure not in valid_measures:
+            issues.append(ValidationIssue("measure", f"'{measure}' is not available for this configuration."))
+
+    if not issues:
+        sweep_size = estimate_sweep_size(
+            source_type=source_type,
+            source_values=source_values,
+            scatterer_type=scatterer_type,
+            scatterer_values=scatterer_values,
+            detector_type=detector_type,
+            detector_values=detector_values,
+        )
+        if sweep_size > MAX_SWEEP_COMBINATIONS:
+            issues.append(
+                ValidationIssue(
+                    "sweep",
+                    f"This sweep contains {sweep_size:,} combinations; reduce it to {MAX_SWEEP_COMBINATIONS:,} or fewer.",
+                )
+            )
+        else:
+            result_estimate = estimate_result_size(
+                source_type=source_type,
+                source_values=source_values,
+                scatterer_type=scatterer_type,
+                scatterer_values=scatterer_values,
+                detector_type=detector_type,
+                detector_values=detector_values,
+            )
+            if result_estimate.estimated_bytes > MAX_RESULT_PAYLOAD_BYTES:
+                issues.append(
+                    ValidationIssue(
+                        "result",
+                        f"The estimated result size is {result_estimate.display_size}; the limit is {_format_bytes(MAX_RESULT_PAYLOAD_BYTES)}.",
+                    )
+                )
+            elif result_estimate.warning:
+                LOGGER.warning(
+                    "Experiment result estimate is large rows=%d columns=%d estimated_bytes=%d",
+                    result_estimate.rows,
+                    result_estimate.columns,
+                    result_estimate.estimated_bytes,
+                )
+
+    return issues
 
 
 def export_result_to_csv(result: dict[str, Any] | None) -> str:

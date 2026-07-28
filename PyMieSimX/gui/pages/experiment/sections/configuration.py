@@ -8,7 +8,7 @@ from PyMieSimX.gui.schemas import SECTION_FIELDS
 
 
 def build_source_section():
-    return _build_section("Source Set", "source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, and amplitude values.")
+    return _build_section("Source Set", "source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, and amplitude values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
 
 
 def build_scatterer_section():

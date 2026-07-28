@@ -1,8 +1,6 @@
-"""Python API and optional Dash graphical interface for PyMieSim."""
+"""Stable, GUI-independent Python API for PyMieSimX computations."""
 
-from importlib.metadata import PackageNotFoundError, version
-
-from PyMieSimX.api import (
+from PyMieSimX.gui.services import (
     MAX_SWEEP_COMBINATIONS,
     MAX_RESULT_FRAME_BYTES,
     MAX_RESULT_PAYLOAD_BYTES,
@@ -21,11 +19,6 @@ from PyMieSimX.api import (
     validate_experiment_inputs,
 )
 
-try:
-    __version__ = version("PyMieSimX")
-except PackageNotFoundError:
-    __version__ = "0+unknown"
-
 __all__ = [
     "MAX_SWEEP_COMBINATIONS",
     "MAX_RESULT_FRAME_BYTES",
@@ -43,16 +36,4 @@ __all__ = [
     "estimate_result_size",
     "run_experiment",
     "validate_experiment_inputs",
-    "__version__",
-    "OpticalSetupGUI",
-    "create_dash_app",
 ]
-
-
-def __getattr__(name: str):
-    """Load the optional Dash interface only when it is explicitly requested."""
-    if name in {"OpticalSetupGUI", "create_dash_app"}:
-        from PyMieSimX.gui.interface import OpticalSetupGUI, create_dash_app
-
-        return {"OpticalSetupGUI": OpticalSetupGUI, "create_dash_app": create_dash_app}[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

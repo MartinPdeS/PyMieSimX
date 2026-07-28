@@ -58,7 +58,7 @@ def _syntax_card():
 
 
 def _vocabulary_card():
-    rows = (("Source", "The incident illumination, such as Gaussian or plane wave."), ("Scatterer", "The object being simulated, such as a sphere or core-shell particle."), ("Detector", "The collection model used for detector-specific measures and coupling."), ("Measure", "The quantity computed from the selected source, scatterer, and detector."), ("Representation", "The mathematical view used to display a result, such as S1/S2, Stokes, or far-field intensity."), ("Sweep", "A calculation over combinations of values supplied in fields with lists or ranges."))
+    rows = (("Source", "The incident illumination, such as Gaussian or plane wave. The Gaussian source is a convenience object for specifying numerical aperture and optical power in watts; it is not a generalized Lorenz--Mie theory implementation."), ("Scatterer", "The object being simulated, such as a sphere or core-shell particle."), ("Detector", "The collection model used for detector-specific measures and coupling."), ("Measure", "The quantity computed from the selected source, scatterer, and detector."), ("Representation", "The mathematical view used to display a result, such as S1/S2, Stokes, or far-field intensity."), ("Sweep", "A calculation over combinations of values supplied in fields with lists or ranges."))
     return html.Section(
         className=Card.classes(color="purple", extra="panel documentation-detail-card"),
         children=[html.Div(className="card-header panel-header", children=[html.H2("Core vocabulary")]), html.Div(className="card-body documentation-definition-list", children=[html.Div([html.Strong(term), html.Span(description)]) for term, description in rows])],

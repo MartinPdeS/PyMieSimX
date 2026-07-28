@@ -8,7 +8,7 @@ from PyMieSimX.gui.schemas import SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS
 
 
 def build_source_section():
-    return _setup_card("Source Set", "single-source-type", "single-source-fields", SINGLE_SOURCE_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, power, and aperture values.")
+    return _setup_card("Source Set", "single-source-type", "single-source-fields", SINGLE_SOURCE_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, power, and aperture values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
 
 
 def build_scatterer_section():

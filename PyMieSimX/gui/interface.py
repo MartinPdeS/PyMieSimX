@@ -6,11 +6,10 @@ import json
 import logging
 from pathlib import Path
 import webbrowser
-from typing import Any
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
-from dash import ALL, MATCH, Dash, Input, Output, State, dcc, no_update
+from dash import ALL, MATCH, Dash, Input, Output, State, dcc, html, no_update
 from flask import Flask, redirect
 
 from PyMieSimX.gui.layout import THEME_DARK, THEME_LIGHT, build_page_with_footer, create_layout, render_fields
@@ -25,6 +24,13 @@ from PyMieSimX.gui.pages.experiment import build_experiment_page
 from PyMieSimX.gui.pages.settings import build_settings_page
 from PyMieSimX.gui.pages.single import build_single_page
 from PyMieSimX.gui.schemas import DETECTOR_FIELDS, SCATTERER_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS, SOURCE_FIELDS
+from PyMieSimX.gui.callback_helpers import (
+    execute_single_callback,
+    merge_local_plot_values as _merge_local_plot_values,
+    pair_ids_with_values as _pair_ids_with_values,
+)
+from PyMieSimX.gui.jobs import experiment_jobs
+from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.services import (
     available_measures,
     apply_plot_settings,
@@ -32,8 +38,8 @@ from PyMieSimX.gui.services import (
     export_result_to_csv,
     export_single_result_to_csv,
     infer_variable_fields,
-    build_single_figure,
-    run_experiment,
+    estimate_result_size,
+    validate_experiment_inputs,
     _parse_field_value,
     _validate_positive_field,
     _is_angular_unit,
@@ -186,13 +192,20 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "settings": "sidebar-link",
         }
         home_visits = int(home_visits or 0)
-        if route == "/":
-            home_visits += 1
         metrics = {
             "home_page_visits": home_visits,
             "experiment_runs": int(experiment_runs or 0),
             "single_runs": int(single_runs or 0),
         }
+        if route == "/":
+            try:
+                server_metrics = usage_metrics.record_home_page_visit()
+                metrics = server_metrics.to_home_page_dict()
+                home_visits = metrics["home_page_visits"]
+            except Exception:
+                LOGGER.exception("Failed to record PyMieSimX home-page visit metric; using local fallback.")
+                home_visits += 1
+                metrics["home_page_visits"] = home_visits
         if route == "/documentation":
             active["documentation"] += " active"
             return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
@@ -462,9 +475,9 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         return options, value
 
     @app.callback(
-        Output("experiment-result", "data"),
-        Output("experiment-run-count", "data"),
+        Output("experiment-job", "data"),
         Output("experiment-computation-status", "children"),
+        Output("experiment-job-poll", "disabled", allow_duplicate=True),
         Input("source-type", "value"),
         Input({"kind": "field", "section": "source", "name": ALL}, "value"),
         State({"kind": "field", "section": "source", "name": ALL}, "id"),
@@ -475,10 +488,10 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input({"kind": "field", "section": "detector", "name": ALL}, "value"),
         State({"kind": "field", "section": "detector", "name": ALL}, "id"),
         Input("measure-select", "value"),
-        State("experiment-run-count", "data"),
+        State("experiment-job", "data"),
         prevent_initial_call=True,
     )
-    def _run_experiment(
+    def _submit_experiment(
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -489,39 +502,90 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         detector_values: list[str],
         detector_ids: list[dict[str, str]],
         measure: str,
-        experiment_runs: int,
+        previous_job: dict | None,
     ):
-        next_experiment_runs = int(experiment_runs or 0)
-
         LOGGER.debug(
-            "Auto-running parameter sweep with source=%s scatterer=%s detector=%s measure=%s",
+            "Preparing background parameter sweep source=%s scatterer=%s detector=%s measure=%s",
             source_type,
             scatterer_type,
             detector_type,
             measure,
         )
 
-        try:
-            result = run_experiment(
-                source_type=source_type,
-                source_values=_pair_ids_with_values(source_ids, source_values),
-                scatterer_type=scatterer_type,
-                scatterer_values=_pair_ids_with_values(scatterer_ids, scatterer_values),
-                detector_type=detector_type,
-                detector_values=_pair_ids_with_values(detector_ids, detector_values),
-                measure=measure,
-            )
-        except Exception:
-            LOGGER.debug("Skipping incomplete or invalid auto-run input", exc_info=True)
-            return no_update, next_experiment_runs, ""
-
-        LOGGER.debug(
-            "Experiment run finished rows=%d x_axis_options=%s",
-            result["row_count"],
-            result["parameter_columns"],
+        source_mapping = _pair_ids_with_values(source_ids, source_values)
+        scatterer_mapping = _pair_ids_with_values(scatterer_ids, scatterer_values)
+        detector_mapping = _pair_ids_with_values(detector_ids, detector_values)
+        issues = validate_experiment_inputs(
+            source_type=source_type,
+            source_values=source_mapping,
+            scatterer_type=scatterer_type,
+            scatterer_values=scatterer_mapping,
+            detector_type=detector_type,
+            detector_values=detector_mapping,
+            measure=measure,
         )
+        if issues:
+            message = " ".join(issue.message for issue in issues)
+            LOGGER.info("Experiment submission rejected: %s", message)
+            return None, html.Div(f"Cannot run: {message}", className="status-banner error"), True
 
-        return result, next_experiment_runs + 1, ""
+        if previous_job:
+            experiment_jobs.cancel(previous_job.get("job_id"))
+        estimate = estimate_result_size(
+            source_type=source_type,
+            source_values=source_mapping,
+            scatterer_type=scatterer_type,
+            scatterer_values=scatterer_mapping,
+            detector_type=detector_type,
+            detector_values=detector_mapping,
+        )
+        job_id = experiment_jobs.submit(
+            source_type=source_type,
+            source_values=source_mapping,
+            scatterer_type=scatterer_type,
+            scatterer_values=scatterer_mapping,
+            detector_type=detector_type,
+            detector_values=detector_mapping,
+            measure=measure,
+        )
+        LOGGER.info("Experiment queued job_id=%s rows_estimate=%d bytes_estimate=%d", job_id, estimate.rows, estimate.estimated_bytes)
+        warning = " Warning: this is a large result." if estimate.warning else ""
+        return {"job_id": job_id}, html.Div(
+            f"Queued {estimate.rows:,} combinations (estimated result {estimate.display_size}).{warning}",
+            className="status-banner idle",
+        ), False
+
+    @app.callback(
+        Output("experiment-result", "data"),
+        Output("experiment-run-count", "data"),
+        Output("experiment-computation-status", "children"),
+        Output("experiment-job-poll", "disabled"),
+        Input("experiment-job-poll", "n_intervals"),
+        State("experiment-job", "data"),
+        State("experiment-run-count", "data"),
+        prevent_initial_call=True,
+    )
+    def _poll_experiment_job(_n_intervals: int, job_data: dict | None, experiment_runs: int):
+        snapshot = experiment_jobs.snapshot((job_data or {}).get("job_id"))
+        if snapshot is None:
+            return no_update, no_update, html.Div("No active experiment job.", className="status-banner error"), True
+        status = snapshot["status"]
+        LOGGER.debug("Polling experiment job_id=%s status=%s", snapshot["job_id"], status)
+        if status in {"pending", "running"}:
+            label = "Queued" if status == "pending" else "Computing"
+            return no_update, no_update, html.Div(f"{label} experiment…", className="status-banner idle"), False
+        if status == "succeeded":
+            result = snapshot["result"]
+            try:
+                usage_metrics.record_experiment_run()
+            except Exception:
+                LOGGER.exception("Failed to record PyMieSimX experiment-run metric.")
+            return result, int(experiment_runs or 0) + 1, html.Div(
+                f"Completed {result['row_count']:,} result rows.", className="status-banner success"
+            ), True
+        return no_update, no_update, html.Div(
+            f"Experiment failed: {snapshot['error'] or 'unknown worker error'}", className="status-banner error"
+        ), True
 
     @app.callback(
         Output("csv-download", "data"),
@@ -615,25 +679,28 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         include_incident_field: list[str] | None,
         single_runs: int,
     ):
-        next_single_runs = int(single_runs or 0)
-        nearfield_values = nearfield_mode if isinstance(nearfield_mode, list) else ([nearfield_mode] if nearfield_mode else [])
+        execution = execute_single_callback(
+            source_type=source_type,
+            source_values=source_values,
+            source_ids=source_ids,
+            scatterer_type=scatterer_type,
+            scatterer_values=scatterer_values,
+            scatterer_ids=scatterer_ids,
+            representation=representation,
+            projection=projection,
+            sampling=sampling or 120,
+            nearfield_mode=nearfield_mode,
+            include_incident_field=include_incident_field,
+            run_count=single_runs,
+        )
+        if execution.level == "error":
+            LOGGER.info("Single representation render failed: %s", execution.message)
+            return None, execution.run_count, html.Div(f"Cannot render: {execution.message}", className="status-banner error")
         try:
-            figure, summary = build_single_figure(
-                source_type=source_type,
-                source_values=_pair_ids_with_values(source_ids, source_values),
-                scatterer_type=scatterer_type,
-                scatterer_values=_pair_ids_with_values(scatterer_ids, scatterer_values),
-                representation=representation,
-                projection=projection,
-                sampling=sampling or 120,
-                nearfield_mode="absolute" if "absolute" in nearfield_values else "real",
-                include_incident_field="include" in (include_incident_field or []),
-            )
+            usage_metrics.record_single_run()
         except Exception:
-            LOGGER.exception("Single representation render failed")
-            return None, next_single_runs, ""
-
-        return {"figure": figure.to_plotly_json(), "summary": summary}, next_single_runs + 1, ""
+            LOGGER.exception("Failed to record PyMieSimX particle-explorer metric.")
+        return execution.result, execution.run_count, html.Div(execution.message, className="status-banner success")
 
     @app.callback(
         Output("single-representation", "options"),
@@ -746,21 +813,6 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         from plotly.graph_objects import Figure
 
         return apply_plot_settings(Figure(result["figure"]), particle_settings, (theme_store or {}).get("theme", "light"))
-
-
-def _pair_ids_with_values(ids: list[dict[str, str]], values: list[str]) -> dict[str, str]:
-    """Convert dynamic Dash field IDs and values into a flat mapping."""
-    return {field_id["name"]: value for field_id, value in zip(ids, values)}
-
-
-def _merge_local_plot_values(settings: dict | None, values: tuple[Any, ...]) -> dict:
-    """Overlay values from a plot-local options card onto stored preferences."""
-    merged = dict(settings or {})
-    names = ("x_scale", "log_y", "font_size", "line_width", "show_legend", "show_grid")
-    for name, value in zip(names, values):
-        if value is not None:
-            merged[name] = value
-    return merged
 
 
 def build_single_empty_figure(plot_settings: dict | None = None, theme: str = "light"):

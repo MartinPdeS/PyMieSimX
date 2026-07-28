@@ -2,8 +2,7 @@
 
 import argparse
 import logging
-
-from PyMieSimX.gui.interface import OpticalSetupGUI
+import sys
 
 
 def _build_argument_parser() -> argparse.ArgumentParser:
@@ -16,13 +15,25 @@ def _build_argument_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def configure_logging(*, debug: bool, log_level: str = "INFO") -> int:
+    """Configure application logging using RosettaX's console format."""
+    resolved_level = logging.DEBUG if debug else getattr(logging, str(log_level).upper(), logging.INFO)
+    logging.basicConfig(
+        level=resolved_level,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        stream=sys.stdout,
+        force=True,
+    )
+    logging.getLogger("PyMieSimX").setLevel(resolved_level)
+    return resolved_level
+
+
 def main(argv: list[str] | None = None) -> None:
     """Launch the PyMieSimX dashboard from a console entry point."""
     args = _build_argument_parser().parse_args(argv)
-    logging.basicConfig(
-        level=logging.DEBUG if args.debug else logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    )
+    configure_logging(debug=args.debug)
+    from PyMieSimX.gui.interface import OpticalSetupGUI
+
     OpticalSetupGUI().run(
         host=args.host,
         port=args.port,

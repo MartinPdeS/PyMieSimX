@@ -6,7 +6,18 @@ import pytest
 
 from PyMieSim.units import ureg
 from PyMieSimX.gui.parsing import MAX_EXPRESSION_POINTS, parse_material_values, parse_numeric_expression, parse_quantity_expression
-from PyMieSimX.gui.services import available_measures, build_detector_set, build_single_figure, run_experiment
+from PyMieSimX.gui.services import (
+    MAX_SWEEP_COMBINATIONS,
+    ExperimentValidationError,
+    available_measures,
+    build_detector_set,
+    build_figure,
+    build_single_figure,
+    estimate_sweep_size,
+    export_result_to_csv,
+    run_experiment,
+    validate_experiment_inputs,
+)
 
 
 def test_parse_quantity_expression_supports_ranges():
@@ -55,6 +66,64 @@ def test_build_detector_set_returns_none_for_detectorless_runs():
     detector = build_detector_set("None", {})
 
     assert detector is None
+
+
+def _valid_experiment_values():
+    return {
+        "source_type": "GaussianSet",
+        "source_values": {
+            "wavelength": "650",
+            "polarization": "0",
+            "optical_power": "1e-3",
+            "numerical_aperture": "0.2",
+        },
+        "scatterer_type": "SphereSet",
+        "scatterer_values": {"diameter": "500", "material": "1.4", "medium": "1.0"},
+        "detector_type": "PhotodiodeSet",
+        "detector_values": {
+            "numerical_aperture": "0.2",
+            "gamma_offset": "0",
+            "phi_offset": "0",
+            "sampling": "50",
+        },
+        "measure": "Qsca",
+    }
+
+
+def test_validation_returns_field_specific_error_for_invalid_values():
+    values = _valid_experiment_values()
+    values["source_values"]["optical_power"] = "-1e-3"
+
+    issues = validate_experiment_inputs(**values)
+
+    assert any(issue.field == "optical_power" and "positive" in issue.message for issue in issues)
+
+
+def test_sweep_size_is_limited_before_backend_execution():
+    values = _valid_experiment_values()
+    values["source_values"]["wavelength"] = "400:800:250"
+    values["scatterer_values"]["diameter"] = "100:1000:250"
+
+    estimate_values = {key: value for key, value in values.items() if key != "measure"}
+    assert estimate_sweep_size(**estimate_values) == 62_500
+    issues = validate_experiment_inputs(**values)
+    assert any(issue.field == "sweep" and f"{MAX_SWEEP_COMBINATIONS:,}" in issue.message for issue in issues)
+
+    with pytest.raises(ExperimentValidationError, match="62,500"):
+        run_experiment(**values)
+
+
+def test_export_and_plot_support_serialized_experiment_results():
+    values = _valid_experiment_values()
+    values["scatterer_values"]["diameter"] = "500:700:3"
+    result = run_experiment(**values)
+
+    csv = export_result_to_csv(result)
+    figure = build_figure(result, x_axis="diameter")
+
+    assert "Qsca" in csv
+    assert len(figure.data) == 1
+    assert len(figure.data[0].x) == 3
 
 
 def test_run_experiment_returns_serialized_dataframe():

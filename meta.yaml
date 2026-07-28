@@ -17,12 +17,13 @@ requirements:
     - setuptools >=68
   run:
     - python {{ PY_VER }}*
-    - pymiesim >=5.1.2
-    - dash >=4.1.0
-    - gunicorn >=23.0.0  # [not win]
-    - numpy >=2.0
-    - pandas >=2.2
+    - pymiesim >=5.1.2,<6
+    - dash >=4.1.0,<5
+    - gunicorn >=23.0.0,<24  # [not win]
+    - numpy >=2.0,<3
+    - pandas >=2.2,<3
     - plotly >=5.24,<7
+    - psycopg >=3.2.9,<4
 
 about:
   home: https://github.com/MartinPdeS/PyMieSimX
