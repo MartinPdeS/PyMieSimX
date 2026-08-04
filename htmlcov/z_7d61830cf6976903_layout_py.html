@@ -67,7 +67,7 @@
             <a id="nextFileLink" class="nav" href="z_7d61830cf6976903_material_catalog_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.2">coverage.py v7.15.2</a>,
-            created at 2026-07-28 11:31 +0000
+            created at 2026-08-04 10:27 +0000
         </p>
         <aside class="hidden">
             <button type="button" class="button_next_chunk" data-shortcut="j"></button>
@@ -99,7 +99,7 @@
     <p class="run"><span class="n"><a id="t15" href="#t15">15</a></span><span class="t"><span class="nam">PLOT_CONFIG</span> <span class="op">=</span> <span class="op">{</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t16" href="#t16">16</a></span><span class="t">    <span class="str">"displayModeBar"</span><span class="op">:</span> <span class="str">"always"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t17" href="#t17">17</a></span><span class="t">    <span class="str">"displaylogo"</span><span class="op">:</span> <span class="key">False</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
-    <p class="run run2"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">    <span class="str">"scrollZoom"</span><span class="op">:</span> <span class="key">True</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
+    <p class="run run2"><span class="n"><a id="t18" href="#t18">18</a></span><span class="t">    <span class="str">"scrollZoom"</span><span class="op">:</span> <span class="key">False</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t19" href="#t19">19</a></span><span class="t">    <span class="str">"doubleClick"</span><span class="op">:</span> <span class="str">"reset+autosize"</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t20" href="#t20">20</a></span><span class="t">    <span class="str">"modeBarButtonsToAdd"</span><span class="op">:</span> <span class="op">[</span><span class="str">"zoomIn2d"</span><span class="op">,</span> <span class="str">"zoomOut2d"</span><span class="op">,</span> <span class="str">"autoScale2d"</span><span class="op">,</span> <span class="str">"resetScale2d"</span><span class="op">]</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
     <p class="run run2"><span class="n"><a id="t21" href="#t21">21</a></span><span class="t">    <span class="str">"toImageButtonOptions"</span><span class="op">:</span> <span class="op">{</span><span class="str">"format"</span><span class="op">:</span> <span class="str">"png"</span><span class="op">,</span> <span class="str">"filename"</span><span class="op">:</span> <span class="str">"pymiesim_plot"</span><span class="op">,</span> <span class="str">"scale"</span><span class="op">:</span> <span class="num">2</span><span class="op">}</span><span class="op">,</span>&nbsp;</span><span class="r"></span></p>
@@ -361,7 +361,7 @@
     <p class="mis show_mis"><span class="n"><a id="t277" href="#t277">277</a></span><span class="t">    <span class="nam">field_specs</span> <span class="op">=</span> <span class="nam">schemas</span><span class="op">[</span><span class="nam">section</span><span class="op">]</span><span class="op">[</span><span class="nam">section_type</span><span class="op">]</span> <span class="key">if</span> <span class="nam">section</span> <span class="key">in</span> <span class="nam">schemas</span> <span class="key">else</span> <span class="nam">SECTION_FIELDS</span><span class="op">[</span><span class="nam">section</span><span class="op">]</span><span class="op">[</span><span class="nam">section_type</span><span class="op">]</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t278" href="#t278">278</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t279" href="#t279">279</a></span><span class="t">    <span class="key">if</span> <span class="key">not</span> <span class="nam">field_specs</span><span class="op">:</span>&nbsp;</span><span class="r"></span></p>
-    <p class="mis show_mis"><span class="n"><a id="t280" href="#t280">280</a></span><span class="t">        <span class="key">return</span> <span class="nam">html</span><span class="op">.</span><span class="nam">Div</span><span class="op">(</span><span class="str">"This parameter sweep runs without a detector set."</span><span class="op">,</span> <span class="nam">className</span><span class="op">=</span><span class="str">"empty-section"</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
+    <p class="mis show_mis"><span class="n"><a id="t280" href="#t280">280</a></span><span class="t">        <span class="key">return</span> <span class="nam">html</span><span class="op">.</span><span class="nam">Div</span><span class="op">(</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t281" href="#t281">281</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
     <p class="mis show_mis"><span class="n"><a id="t282" href="#t282">282</a></span><span class="t">    <span class="key">return</span> <span class="nam">html</span><span class="op">.</span><span class="nam">Div</span><span class="op">(</span><span class="nam">className</span><span class="op">=</span><span class="str">"field-grid"</span><span class="op">,</span> <span class="nam">children</span><span class="op">=</span><span class="op">[</span><span class="nam">render_field</span><span class="op">(</span><span class="nam">section</span><span class="op">,</span> <span class="nam">field_spec</span><span class="op">)</span> <span class="key">for</span> <span class="nam">field_spec</span> <span class="key">in</span> <span class="nam">field_specs</span><span class="op">]</span><span class="op">)</span>&nbsp;</span><span class="r"></span></p>
     <p class="pln"><span class="n"><a id="t283" href="#t283">283</a></span><span class="t">&nbsp;</span><span class="r"></span></p>
@@ -489,7 +489,7 @@
             <a class="nav" href="z_7d61830cf6976903_material_catalog_py.html">&#xbb; next</a>
             &nbsp; &nbsp; &nbsp;
             <a class="nav" href="https://coverage.readthedocs.io/en/7.15.2">coverage.py v7.15.2</a>,
-            created at 2026-07-28 11:31 +0000
+            created at 2026-08-04 10:27 +0000
         </p>
     </div>
 </footer>
