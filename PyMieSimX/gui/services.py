@@ -47,6 +47,14 @@ MAX_RESULT_PAYLOAD_BYTES = 16 * 1024 * 1024
 RESULT_PAYLOAD_WARNING_BYTES = 8 * 1024 * 1024
 MAX_RESULT_FRAME_BYTES = 64 * 1024 * 1024
 
+PYMIESIM_BLUE_BLACK_RED = [
+    [0.000, "#7A90FF"],
+    [0.339, "#0025B3"],
+    [0.500, "#000000"],
+    [0.758, "#C7030D"],
+    [1.000, "#FF6E75"],
+]
+
 
 @dataclass(frozen=True)
 class ValidationIssue:
@@ -85,6 +93,107 @@ class ResultSizeEstimate:
     def display_size(self) -> str:
         """Return a compact human-readable estimate."""
         return _format_bytes(self.estimated_bytes)
+
+
+def _nearfield_scatterer_shapes(nearfields: Any) -> list[dict[str, Any]]:
+    """Return Plotly outlines matching PyMieSim's near-field plot geometry."""
+    setup = getattr(nearfields, "setup", None)
+    scatterer = getattr(setup, "scatterer", None)
+    if scatterer is None or getattr(nearfields, "u", None) is None:
+        return []
+
+    def value_in_nanometers(value: Any) -> float:
+        if hasattr(value, "to"):
+            return float(value.to(ureg.nanometer).magnitude)
+        if hasattr(value, "magnitude"):
+            return float(value.magnitude)
+        return float(value)
+
+    def vector(name: str, default: tuple[float, float, float]) -> np.ndarray:
+        return np.asarray(getattr(nearfields, name, default), dtype=float)
+
+    u_values = np.asarray(nearfields.u.to(ureg.nanometer).magnitude, dtype=float)
+    v_values = np.asarray(nearfields.v.to(ureg.nanometer).magnitude, dtype=float)
+    plane_origin = vector("plane_origin", (0.0, 0.0, 0.0))
+    plane_normal = vector("plane_normal", (0.0, 0.0, 1.0))
+    plane_u_hat = vector("plane_u_hat", (0.0, 1.0, 0.0))
+    plane_v_hat = vector("plane_v_hat", (-1.0, 0.0, 0.0))
+    normal = plane_normal / np.linalg.norm(plane_normal)
+
+    def projected_center() -> tuple[float, float, float]:
+        signed_distance = float(np.dot(-plane_origin, normal))
+        closest_point = -signed_distance * normal
+        relative = closest_point - plane_origin
+        return float(np.dot(relative, plane_u_hat)), float(np.dot(relative, plane_v_hat)), abs(signed_distance)
+
+    core_diameter = getattr(scatterer, "core_diameter", None)
+    shell_thickness = getattr(scatterer, "shell_thickness", None)
+    if core_diameter is not None and shell_thickness is not None:
+        radii = [
+            (0.5 * value_in_nanometers(core_diameter), "#ffd166", "dash", 1.5),
+            (0.5 * value_in_nanometers(core_diameter) + value_in_nanometers(shell_thickness), "white", "solid", 2.0),
+        ]
+    else:
+        diameter = getattr(scatterer, "diameter", None) or getattr(scatterer, "total_diameter", None)
+        if diameter is None:
+            return []
+        radii = [(0.5 * value_in_nanometers(diameter), "white", "solid", 2.0)]
+
+    shapes: list[dict[str, Any]] = []
+    is_cylinder = scatterer.__class__.__name__ == "InfiniteCylinder"
+    if is_cylinder:
+        cylinder_axis = np.array([0.0, 1.0, 0.0])
+        axis_normal_component = float(np.dot(cylinder_axis, normal))
+        transverse_direction = np.cross(cylinder_axis, normal)
+        transverse_norm = float(np.linalg.norm(transverse_direction))
+        plane_offset = float(np.dot(plane_origin, normal))
+
+        for radius, color, dash, width in radii:
+            if abs(axis_normal_component) > 1e-12 and transverse_norm > 1e-12:
+                center = (plane_offset / axis_normal_component) * cylinder_axis
+                relative = center - plane_origin
+                u0 = float(np.dot(relative, plane_u_hat))
+                v0 = float(np.dot(relative, plane_v_hat))
+                transverse_direction /= transverse_norm
+                axis_in_plane = cylinder_axis - axis_normal_component * normal
+                axis_in_plane /= np.linalg.norm(axis_in_plane)
+                angle = np.arctan2(np.dot(transverse_direction, plane_v_hat), np.dot(transverse_direction, plane_u_hat))
+                theta = np.linspace(0, 2 * np.pi, 96)
+                points = np.column_stack(
+                    [
+                        u0 + radius * np.cos(theta) * np.cos(angle) - radius / abs(axis_normal_component) * np.sin(theta) * np.sin(angle),
+                        v0 + radius * np.cos(theta) * np.sin(angle) + radius / abs(axis_normal_component) * np.sin(theta) * np.cos(angle),
+                    ]
+                )
+                path = "M " + " L ".join(f"{u},{v}" for u, v in points) + " Z"
+                shapes.append({"type": "path", "path": path, "line": {"color": color, "width": width, "dash": dash}, "fillcolor": "rgba(0,0,0,0)"})
+            elif transverse_norm > 1e-12:
+                distance = abs(plane_offset)
+                if distance > radius:
+                    continue
+                half_width = np.sqrt(max(radius * radius - distance * distance, 0.0))
+                base_point = plane_offset * normal
+                transverse_direction /= transverse_norm
+                relative = base_point - plane_origin
+                center_u = float(np.dot(relative, plane_u_hat))
+                center_v = float(np.dot(relative, plane_v_hat))
+                transverse_u = float(np.dot(transverse_direction, plane_u_hat))
+                transverse_v = float(np.dot(transverse_direction, plane_v_hat))
+                axis_u = float(np.dot(cylinder_axis, plane_u_hat))
+                axis_v = float(np.dot(cylinder_axis, plane_v_hat))
+                span = max(abs(u_values[0]), abs(u_values[-1]), abs(v_values[0]), abs(v_values[-1])) * 2.0
+                for sign in (-1.0, 1.0):
+                    offset_u = center_u + sign * half_width * transverse_u
+                    offset_v = center_v + sign * half_width * transverse_v
+                    shapes.append({"type": "line", "x0": offset_u - span * axis_u, "x1": offset_u + span * axis_u, "y0": offset_v - span * axis_v, "y1": offset_v + span * axis_v, "line": {"color": color, "width": width, "dash": dash}})
+        return shapes
+
+    center_u, center_v, distance = projected_center()
+    for radius, color, dash, width in radii:
+        if distance <= radius:
+            radius_in_plane = np.sqrt(max(radius * radius - distance * distance, 0.0))
+            shapes.append({"type": "circle", "x0": center_u - radius_in_plane, "x1": center_u + radius_in_plane, "y0": center_v - radius_in_plane, "y1": center_v + radius_in_plane, "line": {"color": color, "width": width, "dash": dash}, "fillcolor": "rgba(0,0,0,0)"})
+    return shapes
 
 _POSITIVE_FIELDS = frozenset({
     "wavelength",
@@ -222,18 +331,18 @@ def build_single_figure(
         field_type = "total" if include_incident_field else "scattered"
         field = nearfields.compute(component, type=field_type, sampling=sampling)[component]
         complex_values = np.asarray(field, dtype=complex)
-        values = np.abs(complex_values) if nearfield_mode != "real" else complex_values.real
+        is_absolute = nearfield_mode != "real"
+        values = np.abs(complex_values) if is_absolute else complex_values.real
+        colorscale = PYMIESIM_BLUE_BLACK_RED
         x = np.asarray(nearfields.u.to(ureg.nanometer).magnitude, dtype=float)
         y = np.asarray(nearfields.v.to(ureg.nanometer).magnitude, dtype=float)
-        figure = go.Figure(
-            data=go.Heatmap(
-                x=x,
-                y=y,
-                z=values,
-                colorscale="Viridis",
-                colorbar={"title": "V/m"},
-            )
-        )
+        heatmap_kwargs = {"x": x, "y": y, "z": values, "colorscale": colorscale, "colorbar": {"title": "V/m"}}
+        if not is_absolute:
+            maximum = float(np.max(np.abs(values)))
+            maximum = maximum if maximum > 0 else 1.0
+            heatmap_kwargs.update(zmin=-maximum, zmax=maximum, zmid=0)
+        figure = go.Figure(data=go.Heatmap(**heatmap_kwargs))
+        figure.update_layout(shapes=_nearfield_scatterer_shapes(nearfields))
         figure.update_layout(yaxis={"scaleanchor": "x", "scaleratio": 1})
         figure.update_xaxes(title="Plane u [nanometer]")
         figure.update_yaxes(title="Plane v [nanometer]")

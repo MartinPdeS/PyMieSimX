@@ -699,7 +699,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             usage_metrics.record_single_run()
         except Exception:
             LOGGER.exception("Failed to record PyMieSimX particle-explorer metric.")
-        return execution.result, execution.run_count, html.Div(execution.message, className="status-banner success")
+        return execution.result, execution.run_count, None
 
     @app.callback(
         Output("single-representation", "options"),
@@ -720,7 +720,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             {"label": "Stokes V", "value": "stokes_v"},
             {"label": "Scattering phase function", "value": "spf"},
             {"label": "Far-field intensity", "value": "farfields"},
-            {"label": "Near-field E", "value": "nearfields", "disabled": not nearfield_supported},
+            {"label": "Near-field |E|", "value": "nearfields", "disabled": not nearfield_supported},
             {"label": "Near-field Ex", "value": "nearfields_ex", "disabled": not nearfield_supported},
             {"label": "Near-field Ey", "value": "nearfields_ey", "disabled": not nearfield_supported},
             {"label": "Near-field Ez", "value": "nearfields_ez", "disabled": not nearfield_supported},
