@@ -18,7 +18,7 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
         children=[
             HeaderCard(
                 "Parameter Sweep Lab",
-                "Configure source, scatterer, and detector sets, then run parameter sweeps through the compiled engine directly from Dash.",
+                "Configure source, scatterer, and detector, then run parameter sweeps through the compiled engine directly from Dash.",
                 [
                     ("01", "Configure source", "Choose the source family and sweep its optical parameters.", "yellow"),
                     ("02", "Configure scatterer", "Set particle geometry, material, and medium values.", "blue"),

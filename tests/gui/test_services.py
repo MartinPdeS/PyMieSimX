@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from PyMieSim.units import ureg
+import PyMieSimX.gui.services as services
 from PyMieSimX.gui.parsing import MAX_EXPRESSION_POINTS, parse_material_values, parse_numeric_expression, parse_quantity_expression
 from PyMieSimX.gui.services import (
     MAX_SWEEP_COMBINATIONS,
@@ -170,3 +171,51 @@ def test_single_representation_returns_plotly_traces():
     assert len(figure.data) == 2
     assert len(figure.data[0].x) == 24
     assert summary["Representation"] == "S1S2"
+
+
+@pytest.mark.parametrize(
+    ("scatterer_type", "scatterer_values"),
+    [
+        ("InfiniteCylinder", {"diameter": "200", "material": "1.4", "medium": "1.0"}),
+        (
+            "CoreShell",
+            {
+                "core_diameter": "120",
+                "shell_thickness": "40",
+                "core_material": "1.4",
+                "shell_material": "1.5",
+                "medium": "1.0",
+            },
+        ),
+    ],
+)
+def test_single_nearfield_supports_new_scatterer_types(monkeypatch, scatterer_type, scatterer_values):
+    class FakeNearFields:
+        u = np.linspace(-1, 1, 24) * ureg.nanometer
+        v = np.linspace(-1, 1, 24) * ureg.nanometer
+
+        def compute(self, component, *, type, sampling):
+            assert component == "Ex"
+            assert type == "total"
+            assert sampling == 24
+            return {component: np.ones((sampling, sampling), dtype=complex)}
+
+    class FakeSetup:
+        def get_representation(self, representation):
+            assert representation == "nearfields"
+            return FakeNearFields()
+
+    monkeypatch.setattr(services, "build_single_setup", lambda **_: FakeSetup())
+
+    figure, summary = build_single_figure(
+        source_type="PlaneWave",
+        source_values={},
+        scatterer_type=scatterer_type,
+        scatterer_values=scatterer_values,
+        representation="nearfields_ex",
+        sampling=24,
+    )
+
+    assert len(figure.data) == 1
+    assert len(figure.data[0].z) == 24
+    assert summary["Scatterer"] == scatterer_type

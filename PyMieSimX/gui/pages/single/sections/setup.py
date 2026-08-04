@@ -8,11 +8,11 @@ from PyMieSimX.gui.schemas import SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS
 
 
 def build_source_section():
-    return _setup_card("Source Set", "single-source-type", "single-source-fields", SINGLE_SOURCE_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, power, and aperture values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
+    return _setup_card("Source", "single-source-type", "single-source-fields", SINGLE_SOURCE_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, power, and aperture values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
 
 
 def build_scatterer_section():
-    return _setup_card("Scatterer Set", "single-scatterer-type", "single-scatterer-fields", SINGLE_SCATTERER_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["scatterer_type"], color="blue", info="Configure particle geometry, material, and surrounding medium values.")
+    return _setup_card("Scatterer", "single-scatterer-type", "single-scatterer-fields", SINGLE_SCATTERER_FIELDS, DEFAULT_WORKSPACE_SETTINGS["particle_explorer"]["scatterer_type"], color="blue", info="Configure particle geometry, material, and surrounding medium values.")
 
 
 def _setup_card(title, selector_id, fields_id, choices, default, color="blue", info=""):

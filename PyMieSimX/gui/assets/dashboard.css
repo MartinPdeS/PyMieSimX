@@ -208,7 +208,7 @@ body {
 .plot-options-grid {
     display: grid;
     grid-template-columns: repeat(8, minmax(104px, 1fr));
-    gap: 10px 12px;
+    gap: 6px 8px;
 }
 
 .plot-option-field {

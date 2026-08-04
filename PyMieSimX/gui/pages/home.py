@@ -42,7 +42,7 @@ def build_home_page(metrics: dict[str, int] | None = None):
                     ),
                     _capability_card(
                         "Parameter Sweep",
-                        "Run source, scatterer, and detector sets across parameter sweeps and export structured results for analysis.",
+                        "Run source, scatterer, and detector configurations across parameter sweeps and export structured results for analysis.",
                         ["Configure source", "Configure scatterer and detector", "Run and export results"],
                         "Open Parameter Sweep",
                         "/experiment",

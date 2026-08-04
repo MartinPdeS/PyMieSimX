@@ -122,6 +122,10 @@ SINGLE_SCATTERER_TYPES = {
     "CoreShell": single_scatterer.CoreShell,
 }
 
+# PyMieSim exposes the same near-field representation for all single-scatterer
+# geometries supported by the particle explorer.
+NEARFIELD_SCATTERER_TYPES = frozenset(SINGLE_SCATTERER_TYPES)
+
 
 def available_measures(scatterer_type: str, detector_type: str) -> list[str]:
     """Return measures valid for the selected experiment configuration."""
@@ -135,20 +139,20 @@ def available_measures(scatterer_type: str, detector_type: str) -> list[str]:
 
 
 def build_source_set(source_type: str, raw_values: Dict[str, Any]) -> Any:
-    """Build the selected source set from raw dashboard values."""
-    LOGGER.debug("Building source set %s with raw values: %s", source_type, raw_values)
+    """Build the selected source from raw dashboard values."""
+    LOGGER.debug("Building source %s with raw values: %s", source_type, raw_values)
     return SOURCE_TYPES[source_type](**_parse_section_fields(SOURCE_FIELDS[source_type], raw_values))
 
 
 def build_scatterer_set(scatterer_type: str, raw_values: Dict[str, Any]) -> Any:
-    """Build the selected scatterer set from raw dashboard values."""
-    LOGGER.debug("Building scatterer set %s with raw values: %s", scatterer_type, raw_values)
+    """Build the selected scatterer from raw dashboard values."""
+    LOGGER.debug("Building scatterer %s with raw values: %s", scatterer_type, raw_values)
     return SCATTERER_TYPES[scatterer_type](**_parse_section_fields(SCATTERER_FIELDS[scatterer_type], raw_values))
 
 
 def build_detector_set(detector_type: str, raw_values: Dict[str, Any]) -> Any:
-    """Build the selected detector set from raw dashboard values."""
-    LOGGER.debug("Building detector set %s with raw values: %s", detector_type, raw_values)
+    """Build the selected detector from raw dashboard values."""
+    LOGGER.debug("Building detector %s with raw values: %s", detector_type, raw_values)
     detector_class = DETECTOR_TYPES[detector_type]
 
     if detector_class is None:
@@ -207,8 +211,6 @@ def build_single_figure(
         figure.update_layout(meta={"polar_axis_unit": "degree"})
         title = "S1 / S2 scattering amplitudes"
     elif representation.startswith("nearfields"):
-        if scatterer_type != "Sphere":
-            raise ValueError("Near-field representations are currently available for spheres only.")
         nearfield_components = {
             "nearfields": "|E|",
             "nearfields_ex": "Ex",

@@ -8,15 +8,15 @@ from PyMieSimX.gui.schemas import SECTION_FIELDS
 
 
 def build_source_section():
-    return _build_section("Source Set", "source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, and amplitude values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
+    return _build_section("Source", "source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, and amplitude values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
 
 
 def build_scatterer_section():
-    return _build_section("Scatterer Set", "scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"], color="blue", info="Configure particle geometry, material, and surrounding medium values.")
+    return _build_section("Scatterer", "scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"], color="blue", info="Configure particle geometry, material, and surrounding medium values.")
 
 
 def build_detector_section():
-    return _build_section("Detector Set", "detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True, color="cyan", info="Configure detector collection geometry, sampling, offsets, and mode settings.")
+    return _build_section("Detector", "detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True, color="cyan", info="Configure detector collection geometry, sampling, offsets, and mode settings.")
 
 
 def _build_section(title, selector_id, fields_id, choices, default, detector=False, color="blue", info=""):

@@ -15,7 +15,7 @@ THEME_DARK = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.6/dist/slate/bootstrap
 PLOT_CONFIG = {
     "displayModeBar": "always",
     "displaylogo": False,
-    "scrollZoom": True,
+    "scrollZoom": False,
     "doubleClick": "reset+autosize",
     "modeBarButtonsToAdd": ["zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"],
     "toImageButtonOptions": {"format": "png", "filename": "pymiesim_plot", "scale": 2},
@@ -277,7 +277,7 @@ def render_fields(section: str, section_type: str):
     field_specs = schemas[section][section_type] if section in schemas else SECTION_FIELDS[section][section_type]
 
     if not field_specs:
-        return html.Div("This parameter sweep runs without a detector set.", className="empty-section")
+        return html.Div()
 
     return html.Div(className="field-grid", children=[render_field(section, field_spec) for field_spec in field_specs])
 

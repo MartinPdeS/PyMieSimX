@@ -43,6 +43,7 @@ from PyMieSimX.gui.services import (
     _parse_field_value,
     _validate_positive_field,
     _is_angular_unit,
+    NEARFIELD_SCATTERER_TYPES,
 )
 
 
@@ -580,9 +581,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 usage_metrics.record_experiment_run()
             except Exception:
                 LOGGER.exception("Failed to record PyMieSimX experiment-run metric.")
-            return result, int(experiment_runs or 0) + 1, html.Div(
-                f"Completed {result['row_count']:,} result rows.", className="status-banner success"
-            ), True
+            return result, int(experiment_runs or 0) + 1, None, True
         return no_update, no_update, html.Div(
             f"Experiment failed: {snapshot['error'] or 'unknown worker error'}", className="status-banner error"
         ), True
@@ -711,7 +710,7 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("single-representation", "value"),
     )
     def _update_single_representation_options(scatterer_type: str, current_representation: str | None):
-        nearfield_supported = scatterer_type == "Sphere"
+        nearfield_supported = scatterer_type in NEARFIELD_SCATTERER_TYPES
         nearfield_values = {"nearfields", "nearfields_ex", "nearfields_ey", "nearfields_ez"}
         options = [
             {"label": "S1 / S2 amplitudes", "value": "s1s2"},
@@ -727,8 +726,8 @@ def _register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             {"label": "Near-field Ez", "value": "nearfields_ez", "disabled": not nearfield_supported},
         ]
         value = current_representation if current_representation and (nearfield_supported or current_representation not in nearfield_values) else "s1s2"
-        alert_style = {} if nearfield_supported else {"display": "block"}
-        alert = "Near-field calculations are currently available for spherical particles only."
+        alert_style = {"display": "none"} if nearfield_supported else {"display": "block"}
+        alert = "Near-field calculations are unavailable for the selected particle type."
         return options, value, alert_style, alert
 
     @app.callback(
