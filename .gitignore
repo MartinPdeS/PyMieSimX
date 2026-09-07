@@ -10,3 +10,10 @@ dist/
 .coverage
 htmlcov/
 .DS_Store
+!conda.recipe/
+!conda.recipe/meta.yaml
+!CONTRIBUTING.md
+!makefile
+!Makefile
+!tools/
+!tools/*.py

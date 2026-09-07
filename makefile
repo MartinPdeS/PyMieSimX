@@ -1,7 +1,7 @@
 PYTHON ?= python3
 BUILD_DIR ?= build
 
-.PHONY: quality test build install editable run docker-build docker-run clean
+.PHONY: quality test build install editable run docker-build docker-run clean release tag patch minor major
 
 quality:
 	$(PYTHON) -m ruff check PyMieSimX tests
@@ -30,3 +30,15 @@ docker-run:
 
 clean:
 	rm -rf $(BUILD_DIR) dist *.egg-info .pytest_cache htmlcov .coverage
+
+release:
+	@set -eu; release_tag="$$( $(PYTHON) tools/next_release_version.py $(BUMP) )"; \
+	$(PYTHON) tools/release_tag.py "$$release_tag"; \
+	git push origin HEAD "refs/tags/$$release_tag"
+
+tag:
+	@set -eu; release_tag="$$( $(PYTHON) tools/next_release_version.py $(BUMP) )"; \
+	$(PYTHON) tools/release_tag.py "$$release_tag"
+
+patch minor major:
+	@$(MAKE) release BUMP=$@
