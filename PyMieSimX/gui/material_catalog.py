@@ -1,6 +1,5 @@
 """Material catalog utilities backed by a bundled assets JSON file."""
 
-from __future__ import annotations
 
 import json
 from pathlib import Path

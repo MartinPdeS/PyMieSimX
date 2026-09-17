@@ -1,6 +1,5 @@
 """Dash interface for the PyMieSim experiment dashboard."""
 
-from __future__ import annotations
 
 import json
 import logging

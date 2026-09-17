@@ -4,7 +4,6 @@ Keeping state conversion and callback error handling here makes the expensive
 parts of the dashboard testable without invoking Dash's callback machinery.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any

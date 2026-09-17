@@ -1,6 +1,5 @@
 """Settings page composition and independent plotting preferences."""
 
-from __future__ import annotations
 
 from dash import dcc, html
 

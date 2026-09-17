@@ -1,6 +1,5 @@
 """Layout helpers for the experiment dashboard."""
 
-from __future__ import annotations
 
 from dash import dcc, html
 

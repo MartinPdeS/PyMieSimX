@@ -1,6 +1,5 @@
 """Reusable card primitives shared by all dashboard pages."""
 
-from __future__ import annotations
 
 from collections.abc import Sequence
 

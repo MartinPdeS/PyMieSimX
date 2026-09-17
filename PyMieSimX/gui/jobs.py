@@ -1,6 +1,5 @@
 """Bounded in-process background jobs for expensive dashboard calculations."""
 
-from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field

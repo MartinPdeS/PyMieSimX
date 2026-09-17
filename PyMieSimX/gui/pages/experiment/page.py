@@ -1,6 +1,5 @@
 """Parameter Sweep page composition."""
 
-from __future__ import annotations
 
 from dash import dcc, html
 

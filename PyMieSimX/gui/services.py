@@ -1,6 +1,5 @@
 """Pure backend services for the experiment dashboard."""
 
-from __future__ import annotations
 
 import logging
 import json

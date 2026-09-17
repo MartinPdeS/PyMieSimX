@@ -1,6 +1,5 @@
 """Server-side usage counters with PostgreSQL and local-file fallbacks."""
 
-from __future__ import annotations
 
 import json
 import logging
