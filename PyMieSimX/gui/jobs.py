@@ -9,6 +9,7 @@ from threading import Lock
 from uuid import uuid4
 from typing import Any
 
+from PyMieSimX.gui.models import ExperimentResult, JobSnapshot
 from PyMieSimX.gui.services import run_experiment
 
 
@@ -24,7 +25,7 @@ def _now() -> str:
 class _Job:
     job_id: str
     status: str = "pending"
-    result: dict[str, Any] | None = None
+    result: ExperimentResult | None = None
     error: str | None = None
     submitted_at: str = field(default_factory=_now)
     started_at: str | None = None
@@ -50,7 +51,7 @@ class ExperimentJobManager:
         LOGGER.info("Submitted experiment job_id=%s queued_jobs=%d", job.job_id, len(self._jobs))
         return job.job_id
 
-    def snapshot(self, job_id: str | None) -> dict[str, Any] | None:
+    def snapshot(self, job_id: str | None) -> JobSnapshot | None:
         """Return a JSON-safe snapshot of a job."""
         if not job_id:
             return None

@@ -5,7 +5,7 @@ BUILD_DIR ?= build
 
 quality:
 	$(PYTHON) -m ruff check PyMieSimX tests
-	$(PYTHON) -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py
+	$(PYTHON) -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py PyMieSimX/gui/models.py PyMieSimX/gui/jobs.py PyMieSimX/gui/callback_helpers.py
 
 test:
 	$(PYTHON) -m pytest

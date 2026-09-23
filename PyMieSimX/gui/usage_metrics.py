@@ -1,13 +1,9 @@
-"""Server-side usage counters with PostgreSQL and local-file fallbacks."""
+"""Server-side usage counters, available only with PostgreSQL configured."""
 
 
-import json
 import logging
 import os
-from dataclasses import asdict, dataclass
-from pathlib import Path
-import platform
-import threading
+from dataclasses import dataclass
 from typing import Any
 
 try:
@@ -20,7 +16,6 @@ LOGGER = logging.getLogger(__name__)
 
 METRICS_BACKEND_ENV_VAR = "PYMIESIMX_USAGE_METRICS_BACKEND"
 METRICS_DATABASE_URL_ENV_VAR = "PYMIESIMX_USAGE_METRICS_DATABASE_URL"
-METRICS_PATH_ENV_VAR = "PYMIESIMX_USAGE_METRICS_PATH"
 DATABASE_URL_ENV_VAR = "DATABASE_URL"
 METRICS_TABLE = "metrics_counters"
 
@@ -28,22 +23,23 @@ METRIC_HOME_PAGE_VISIT_COUNT = "pymiesimx_home_page_visit_count"
 METRIC_EXPERIMENT_RUN_COUNT = "pymiesimx_experiment_run_count"
 METRIC_SINGLE_RUN_COUNT = "pymiesimx_single_run_count"
 
-_WRITE_LOCK = threading.Lock()
-
-
 @dataclass(frozen=True)
 class UsageMetrics:
     """Aggregate PyMieSimX usage counters."""
 
-    home_page_visit_count: int = 0
-    experiment_run_count: int = 0
-    single_run_count: int = 0
+    home_page_visit_count: int | float = float("nan")
+    experiment_run_count: int | float = float("nan")
+    single_run_count: int | float = float("nan")
 
-    def to_dict(self) -> dict[str, int]:
+    def to_dict(self) -> dict[str, int | float]:
         """Return a JSON-safe mapping."""
-        return asdict(self)
+        return {
+            "home_page_visit_count": self.home_page_visit_count,
+            "experiment_run_count": self.experiment_run_count,
+            "single_run_count": self.single_run_count,
+        }
 
-    def to_home_page_dict(self) -> dict[str, int]:
+    def to_home_page_dict(self) -> dict[str, int | float]:
         """Return the field names expected by the Home page."""
         return {
             "home_page_visits": self.home_page_visit_count,
@@ -53,13 +49,13 @@ class UsageMetrics:
 
 
 def load_usage_metrics() -> UsageMetrics:
-    """Load counters from PostgreSQL or the configured local fallback."""
+    """Load hosted counters, or return unavailable values when run locally."""
     if _use_postgres_backend():
         try:
             return _load_from_postgres()
         except Exception:
-            LOGGER.exception("Failed to load PyMieSimX usage metrics from PostgreSQL; using file fallback.")
-    return _load_from_file()
+            LOGGER.exception("Failed to load PyMieSimX usage metrics from PostgreSQL.")
+    return UsageMetrics()
 
 
 def record_home_page_visit() -> UsageMetrics:
@@ -77,20 +73,6 @@ def record_single_run() -> UsageMetrics:
     return _update(home_page_visit_delta=0, experiment_run_delta=0, single_run_delta=1)
 
 
-def get_metrics_file_path() -> Path:
-    """Resolve the local fallback path."""
-    configured_path = os.getenv(METRICS_PATH_ENV_VAR, "").strip()
-    if configured_path:
-        return Path(configured_path).expanduser().resolve()
-
-    home = Path.home()
-    if platform.system() == "Darwin":
-        return home / "Library" / "Application Support" / "PyMieSimX" / "usage_metrics.json"
-    if platform.system() == "Windows" and os.getenv("LOCALAPPDATA"):
-        return Path(os.environ["LOCALAPPDATA"]) / "PyMieSimX" / "usage_metrics.json"
-    return home / ".local" / "share" / "PyMieSimX" / "usage_metrics.json"
-
-
 def _update(*, home_page_visit_delta: int, experiment_run_delta: int, single_run_delta: int) -> UsageMetrics:
     if _use_postgres_backend():
         try:
@@ -100,42 +82,10 @@ def _update(*, home_page_visit_delta: int, experiment_run_delta: int, single_run
                 single_run_delta=single_run_delta,
             )
         except Exception:
-            LOGGER.exception("Failed to update PyMieSimX usage metrics in PostgreSQL; using file fallback.")
+            LOGGER.exception("Failed to update PyMieSimX usage metrics in PostgreSQL.")
 
-    return _update_file(
-        home_page_visit_delta=home_page_visit_delta,
-        experiment_run_delta=experiment_run_delta,
-        single_run_delta=single_run_delta,
-    )
-
-
-def _load_from_file() -> UsageMetrics:
-    path = get_metrics_file_path()
-    if not path.exists():
-        return UsageMetrics()
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        return UsageMetrics(**{key: max(0, int(payload.get(key, 0))) for key in UsageMetrics.__dataclass_fields__})
-    except Exception:
-        LOGGER.exception("Failed to read PyMieSimX usage metrics path=%r", str(path))
-        return UsageMetrics()
-
-
-def _update_file(*, home_page_visit_delta: int, experiment_run_delta: int, single_run_delta: int) -> UsageMetrics:
-    with _WRITE_LOCK:
-        current = _load_from_file()
-        next_metrics = UsageMetrics(
-            home_page_visit_count=current.home_page_visit_count + max(0, int(home_page_visit_delta)),
-            experiment_run_count=current.experiment_run_count + max(0, int(experiment_run_delta)),
-            single_run_count=current.single_run_count + max(0, int(single_run_delta)),
-        )
-        path = get_metrics_file_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary_path = path.with_suffix(f"{path.suffix}.tmp")
-        temporary_path.write_text(json.dumps(next_metrics.to_dict(), indent=2, sort_keys=True), encoding="utf-8")
-        temporary_path.replace(path)
-    LOGGER.debug("Updated file usage metrics path=%s metrics=%s", path, next_metrics.to_dict())
-    return next_metrics
+    # Local installations deliberately neither persist nor display usage data.
+    return UsageMetrics()
 
 
 def _use_postgres_backend() -> bool:
@@ -216,7 +166,6 @@ def _update_postgres(*, home_page_visit_delta: int, experiment_run_delta: int, s
 
 __all__ = [
     "UsageMetrics",
-    "get_metrics_file_path",
     "load_usage_metrics",
     "record_experiment_run",
     "record_home_page_visit",

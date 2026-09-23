@@ -102,5 +102,6 @@ the Render service with::
 
 PyMieSimX writes namespaced counters to the shared ``metrics_counters`` table:
 ``pymiesimx_home_page_visit_count``, ``pymiesimx_experiment_run_count``, and
-``pymiesimx_single_run_count``. If PostgreSQL is unavailable, local development
-falls back to a JSON file under the platform's application-data directory.
+``pymiesimx_single_run_count``. Metrics are collected only when the PostgreSQL
+backend is explicitly configured and available. Local installations do not
+persist usage counters and display ``NaN`` for all three metrics.

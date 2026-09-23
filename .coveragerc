@@ -8,6 +8,7 @@ omit =
     PyMieSimX/**/__main__.py
 
 [report]
+fail_under = 52
 skip_covered = True
 show_missing = True
 precision = 2

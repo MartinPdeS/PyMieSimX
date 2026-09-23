@@ -2,11 +2,14 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
+from math import isnan
+from typing import Mapping
+
 from dash import html
 
 from PyMieSimX.gui.components import Card
 
-def build_home_page(metrics: dict[str, int] | None = None):
+def build_home_page(metrics: Mapping[str, int | float] | None = None):
     """Build the landing page and its workflow cards."""
     metrics = metrics or {}
     return html.Div(
@@ -117,7 +120,14 @@ def _capability_card(title: str, description: str, steps: list[str], button_text
     )
 
 
-def _metrics_card(metrics: dict[str, int]):
+def _metric_text(value: object) -> str:
+    """Render unavailable local metrics consistently."""
+    if isinstance(value, float) and isnan(value):
+        return "NaN"
+    return str(value)
+
+
+def _metrics_card(metrics: Mapping[str, int | float]):
     return html.Section(
         className=Card.classes(color="blue", extra="home-info-card home-metrics-card"),
         children=[
@@ -127,21 +137,21 @@ def _metrics_card(metrics: dict[str, int]):
                 children=[
                     html.Div(
                         [
-                            html.Div(str(metrics.get("home_page_visits", 0)), className="home-metric-value"),
+                            html.Div(_metric_text(metrics.get("home_page_visits", float("nan"))), className="home-metric-value"),
                             html.Div("Home page visits", className="home-metric-label"),
                         ],
                         className="home-metric-tile",
                     ),
                     html.Div(
                         [
-                            html.Div(str(metrics.get("experiment_runs", 0)), className="home-metric-value"),
+                            html.Div(_metric_text(metrics.get("experiment_runs", float("nan"))), className="home-metric-value"),
                             html.Div("Parameter sweeps", className="home-metric-label"),
                         ],
                         className="home-metric-tile",
                     ),
                     html.Div(
                         [
-                            html.Div(str(metrics.get("single_runs", 0)), className="home-metric-value"),
+                            html.Div(_metric_text(metrics.get("single_runs", float("nan"))), className="home-metric-value"),
                             html.Div("Particle explorations", className="home-metric-label"),
                         ],
                         className="home-metric-tile",

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from PyMieSim.units import ureg
-import PyMieSimX.gui.services as services
+import PyMieSimX.gui.computation as computation
 from PyMieSimX.gui.parsing import MAX_EXPRESSION_POINTS, parse_material_values, parse_numeric_expression, parse_quantity_expression
 from PyMieSimX.gui.services import (
     MAX_SWEEP_COMBINATIONS,
@@ -205,7 +205,7 @@ def test_single_nearfield_supports_new_scatterer_types(monkeypatch, scatterer_ty
             assert representation == "nearfields"
             return FakeNearFields()
 
-    monkeypatch.setattr(services, "build_single_setup", lambda **_: FakeSetup())
+    monkeypatch.setattr(computation, "build_single_setup", lambda **_: FakeSetup())
 
     figure, summary = build_single_figure(
         source_type="PlaneWave",

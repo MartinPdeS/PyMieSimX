@@ -8,6 +8,7 @@ parts of the dashboard testable without invoking Dash's callback machinery.
 from dataclasses import dataclass
 from typing import Any
 
+from PyMieSimX.gui.models import ExperimentResult, MessageLevel, SingleResult
 from PyMieSimX.gui.services import ExperimentValidationError, build_single_figure, run_experiment
 
 
@@ -15,10 +16,10 @@ from PyMieSimX.gui.services import ExperimentValidationError, build_single_figur
 class CallbackExecution:
     """Serializable outcome of a computation requested by a Dash callback."""
 
-    result: dict[str, Any] | None
+    result: ExperimentResult | SingleResult | None
     run_count: int
     message: str
-    level: str
+    level: MessageLevel
 
 
 def pair_ids_with_values(ids: list[dict[str, str]], values: list[str]) -> dict[str, str]:
