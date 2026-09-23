@@ -21,8 +21,8 @@ def test_navigation_and_local_metrics(monkeypatch):
     monkeypatch.setattr(usage_metrics, "record_home_page_visit", lambda: usage_metrics.UsageMetrics())
     route = _callback(application, "_route_pages")
 
-    home = route("/", 0, 0, 0, {"theme": "light"}, {})
-    experiment = route("/experiment", home[-1], 0, 0, {"theme": "light"}, {})
+    home = route("/", "", 0, 0, 0, {"theme": "light"}, {})
+    experiment = route("/experiment", "", home[-1], 0, 0, {"theme": "light"}, {})
 
     assert home[1].endswith("active")
     assert isnan(home[-1])

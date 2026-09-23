@@ -3,6 +3,7 @@
 
 import logging
 from math import isfinite
+from urllib.parse import parse_qs
 
 from dash import ALL, MATCH, Dash, Input, Output, State, dcc, html, no_update
 
@@ -25,6 +26,7 @@ from PyMieSimX.gui.callback_helpers import (
 )
 from PyMieSimX.gui.jobs import experiment_jobs
 from PyMieSimX.gui import usage_metrics
+from PyMieSimX.gui.admin import build_admin_page, collect_admin_dashboard_data, dashboard_values, is_admin_access_granted
 from PyMieSimX.gui.services import (
     available_measures,
     apply_plot_settings,
@@ -82,13 +84,14 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("sidebar-link-settings", "className"),
         Output("home-visit-count", "data"),
         Input("url", "pathname"),
+        Input("url", "search"),
         State("home-visit-count", "data"),
         State("experiment-run-count", "data"),
         State("single-run-count", "data"),
         State("theme-store", "data"),
         State("plot-settings-store", "data"),
     )
-    def _route_pages(pathname: str | None, home_visits: int, experiment_runs: int, single_runs: int, theme_store: dict | None, plot_settings: dict | None):
+    def _route_pages(pathname: str | None, search: str | None, home_visits: int, experiment_runs: int, single_runs: int, theme_store: dict | None, plot_settings: dict | None):
         """Render only the selected route page inside the persistent shell."""
         route = pathname or "/"
         active = {
@@ -99,20 +102,16 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "settings": "sidebar-link",
         }
         home_visits = _counter(home_visits)
-        metrics = {
-            "home_page_visits": home_visits,
-            "experiment_runs": _counter(experiment_runs),
-            "single_runs": _counter(single_runs),
-        }
         if route == "/":
             try:
                 server_metrics = usage_metrics.record_home_page_visit()
-                metrics = server_metrics.to_home_page_dict()
-                home_visits = metrics["home_page_visits"]
+                home_visits = server_metrics.home_page_visit_count
             except Exception:
                 LOGGER.exception("Failed to record PyMieSimX home-page visit metric.")
-                metrics = usage_metrics.UsageMetrics().to_home_page_dict()
                 home_visits = float("nan")
+        if route == "/admin":
+            token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
+            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
         if route == "/documentation":
             active["documentation"] += " active"
             return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
@@ -138,7 +137,23 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             active["experiment"] += " active"
             return build_page_with_footer(build_experiment_page(default_measure_options, plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
         active["home"] += " active"
-        return build_page_with_footer(build_home_page(metrics)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+        return build_page_with_footer(build_home_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+
+    @app.callback(
+        Output("admin-home-page-visits", "children"),
+        Output("admin-experiment-runs", "children"),
+        Output("admin-single-runs", "children"),
+        Output("admin-last-updated", "children"),
+        Input("admin-refresh-interval", "n_intervals"),
+        Input("admin-refresh-button", "n_clicks"),
+        State("url", "search"),
+        prevent_initial_call=False,
+    )
+    def _refresh_admin_dashboard(_n_intervals: int, _n_clicks: int, search: str | None):
+        token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
+        if not is_admin_access_granted(token):
+            return no_update, no_update, no_update, no_update
+        return dashboard_values(collect_admin_dashboard_data())
 
     @app.callback(
         Output("plot-settings-store", "data"),

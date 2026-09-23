@@ -25,7 +25,7 @@ jobs:
       - name: Ruff
         run: python -m ruff check PyMieSimX tests
       - name: Mypy
-        run: python -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py PyMieSimX/gui/models.py PyMieSimX/gui/jobs.py PyMieSimX/gui/callback_helpers.py
+        run: python -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py PyMieSimX/gui/models.py PyMieSimX/gui/jobs.py PyMieSimX/gui/callback_helpers.py PyMieSimX/gui/admin.py
       - name: GUI tests
         run: python -m pytest
 
