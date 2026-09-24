@@ -23,6 +23,11 @@ Install the GUI and its PyMieSim dependency with::
 
     pip install PyMieSimX
 
+Named materials use PyOptik's local RefractiveIndex.INFO snapshot. Initialize
+it once after installation::
+
+    python -m PyOptik setup --no-progress
+
 Launch the dashboard with::
 
     pymiesimx

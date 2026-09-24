@@ -6,6 +6,7 @@ import pytest
 
 from PyMieSim.units import ureg
 import PyMieSimX.gui.computation as computation
+from PyMieSimX.gui.material_catalog import material_dropdown_options
 from PyMieSimX.gui.parsing import MAX_EXPRESSION_POINTS, parse_material_values, parse_numeric_expression, parse_quantity_expression
 from PyMieSimX.gui.services import (
     MAX_SWEEP_COMBINATIONS,
@@ -46,6 +47,21 @@ def test_parse_expression_rejects_more_than_500_points():
 
 def test_parse_material_values_supports_named_materials():
     material = parse_material_values("silver")
+
+    assert material.__class__.__name__ == "TabulatedMaterial"
+
+
+def test_material_options_follow_the_pymiesim_pyoptik_registry():
+    material_values = {option["value"] for option in material_dropdown_options()}
+    medium_values = {option["value"] for option in material_dropdown_options(medium=True)}
+
+    assert {"BK7", "fused_silica", "silver", "gold"} <= material_values
+    assert medium_values == {"BK7", "fused_silica", "water"}
+    assert {"silver", "gold"}.isdisjoint(medium_values)
+
+
+def test_parse_material_values_supports_canonical_pyoptik_ids():
+    material = parse_material_values("main/Ag/Johnson")
 
     assert material.__class__.__name__ == "TabulatedMaterial"
 

@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from PyMieSim.materials import available_materials
+
 
 ASSET_CATALOG_PATH = Path(__file__).with_name("assets") / "materials-stock.json"
 
@@ -61,21 +63,10 @@ def load_material_catalog() -> dict[str, Any]:
     }
 
 
-def material_dropdown_options() -> list[dict[str, str]]:
-    """Build dropdown options from the JSON stock material catalog."""
-    catalog = load_material_catalog()
-    options = []
-
-    for name in catalog["materials"]:
-        if not isinstance(name, str):
-            continue
-        normalized = name.strip()
-        if not normalized:
-            continue
-
-        options.append({"label": _to_display_name(normalized), "value": normalized})
-
-    return options
+def material_dropdown_options(*, medium: bool = False) -> list[dict[str, str]]:
+    """Build options from PyMieSim's active PyOptik-backed registry."""
+    kind = "sellmeier" if medium else "auto"
+    return [{"label": _to_display_name(name), "value": name} for name in available_materials(kind)]
 
 
 def _to_display_name(name: str) -> str:

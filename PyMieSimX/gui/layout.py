@@ -352,10 +352,11 @@ def render_field(section: str, field_spec: FieldSpec):
     persistence = "parameter-sweep-defaults-v2" if section in {"source", "scatterer", "detector"} else True
     default_class = " field-input-default" if section == "detector" and field_spec.name in {"polarization_filter", "medium"} else ""
 
-    if field_spec.kind == "material":
+    if field_spec.kind in {"material", "medium"}:
+        is_medium = field_spec.kind == "medium"
         default_text = str(field_spec.default)
         default_is_named = any(char.isalpha() for char in default_text)
-        named_options = material_dropdown_options()
+        named_options = material_dropdown_options(medium=is_medium)
         default_from_catalog = named_options[0]["value"] if named_options else "fused_silica"
         named_default = default_text if default_is_named else default_from_catalog
         return html.Div(
@@ -378,7 +379,7 @@ def render_field(section: str, field_spec: FieldSpec):
                     children=[
                         dcc.Store(
                             id={"kind": "material-ri-value", "section": section, "name": field_spec.name},
-                            data=default_text if not default_is_named else "1.4",
+                            data=default_text if not default_is_named else ("1.0" if is_medium else "1.4"),
                         ),
                         html.Div(
                             id={"kind": "material-ri-input-wrapper", "section": section, "name": field_spec.name},
@@ -389,7 +390,7 @@ def render_field(section: str, field_spec: FieldSpec):
                                     type="text",
                                     value=field_spec.default,
                                     debounce=True,
-                                    placeholder=field_spec.placeholder or "1.45 or 1.45+0.01j",
+                                    placeholder=field_spec.placeholder or ("1.0" if is_medium else "1.45 or 1.45+0.01j"),
                                     className=f"field-input{default_class}",
                                     persistence=persistence,
                                     persistence_type="session",

@@ -14,7 +14,7 @@ authors = [
     { name = "Martin Poinsinet de Sivry-Houle", email = "martin.poinsinet.de.sivry@gmail.com" }
 ]
 dependencies = [
-    "PyMieSim>=5.1.2,<6",
+    "PyMieSim>=5.6.4,<6",
     "dash>=4.1.0,<5",
     "gunicorn>=23.0.0,<24",
     "numpy>=2.0,<3",
