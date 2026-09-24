@@ -83,6 +83,28 @@ def _plot_options_card(prefix: str, settings: dict, representation: str | None =
     fields.append(("Grid", dropdown("grid", [{"label": "Show", "value": True}, {"label": "Hide", "value": False}], bool(values["show_grid"]))))
     if prefix == "experiment":
         fields.insert(2, ("Projection", dropdown("projection", projection_options or [{"label": "Cartesian", "value": "cartesian"}], projection or "cartesian")))
+    if prefix == "single":
+        if representation == "s1s2":
+            single_projection_options = [{"label": "2D plot", "value": "2d"}, {"label": "Polar 1D", "value": "polar_1d"}]
+        else:
+            supports_3d = representation in {"stokes", "stokes_q", "stokes_u", "stokes_v", "spf", "farfields"}
+            supports_heatmap = supports_3d or str(representation or "").startswith("nearfields")
+            single_projection_options = [{"label": "2D heatmap" if supports_heatmap else "2D plot", "value": "2d"}]
+            if supports_3d:
+                single_projection_options.extend([{"label": "3D sphere", "value": "3d"}, {"label": "3D radial surface", "value": "3d_radial"}])
+        single_projection = dcc.Dropdown(
+            id="single-projection",
+            options=single_projection_options,
+            value=projection or "2d",
+            clearable=False,
+            searchable=False,
+            optionHeight=34,
+            maxHeight=170,
+            persistence=True,
+            persistence_type="session",
+            className="dashboard-dropdown plot-option-control",
+        )
+        fields.insert(0, ("Projection", single_projection))
     return html.Section(
         className="plot-options-card",
         children=[

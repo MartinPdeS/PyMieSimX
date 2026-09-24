@@ -258,6 +258,41 @@ body {
     padding: 0 16px 16px;
 }
 
+.sidebar-type-selector {
+    margin: 0 -16px 4px;
+    padding: 14px 16px 18px;
+    border-bottom: 2px solid rgba(128, 128, 128, .25);
+}
+
+.sidebar-type-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #52616d;
+}
+
+.sidebar-type-dropdown.dashboard-dropdown .Select-control {
+    min-height: 56px;
+    border-width: 2px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.sidebar-type-selector--yellow { background: #fffbed; border-bottom-color: #e7c766; }
+.sidebar-type-selector--yellow .sidebar-type-label { color: #8a6d1a; }
+.sidebar-type-selector--yellow .sidebar-type-dropdown.dashboard-dropdown .Select-control { border-color: #e7c766; }
+
+.sidebar-type-selector--blue { background: #eef4ff; border-bottom-color: #7ea6e8; }
+.sidebar-type-selector--blue .sidebar-type-label { color: #274b8a; }
+.sidebar-type-selector--blue .sidebar-type-dropdown.dashboard-dropdown .Select-control { border-color: #7ea6e8; }
+
+.sidebar-type-selector--cyan { background: #effbfc; border-bottom-color: #6fc4cf; }
+.sidebar-type-selector--cyan .sidebar-type-label { color: #1c6b76; }
+.sidebar-type-selector--cyan .sidebar-type-dropdown.dashboard-dropdown .Select-control { border-color: #6fc4cf; }
+
 .sidebar-panel .plot-options-card {
     margin: 0 14px 14px;
     background: transparent;
@@ -2636,15 +2671,62 @@ html .field-input {
     box-shadow: 0 0 0 2px rgba(44, 120, 180, 0.18);
 }
 
-.material-name-select .Select-control {
-    min-height: 48px;
-    border-radius: 12px;
+button.material-name-select {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 48px !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--line) !important;
+    background: var(--panel-strong) !important;
+    box-shadow: none !important;
+    padding: 10px 12px !important;
+    font-size: .95rem !important;
+    font-weight: 500 !important;
+    line-height: 1.35 !important;
+    color: var(--ink) !important;
+    text-align: left;
 }
 
-.material-name-select .Select-placeholder,
-.material-name-select .Select-value-label,
-.material-name-select .Select-input > input {
-    line-height: 46px;
+button.material-name-select:focus-visible {
+    outline: 0;
+    border-color: rgba(44, 120, 180, 0.65) !important;
+    box-shadow: 0 0 0 2px rgba(44, 120, 180, 0.18) !important;
+}
+
+.material-name-select .dash-dropdown-grid-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.material-name-select .dash-dropdown-value,
+.material-name-select .dash-dropdown-value-item {
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.material-name-select .dash-dropdown-trigger-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: .55;
+}
+
+.material-field-controls .field-input {
+    height: 48px;
+    border-radius: 14px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    font-size: .95rem;
 }
 
 @media (max-width: 760px) {
@@ -3122,7 +3204,7 @@ body {
 
 .home-capability-content {
     display: grid;
-    grid-template-columns: minmax(260px, .82fr) minmax(390px, 1.18fr);
+    grid-template-columns: minmax(260px, .72fr) minmax(390px, 1.28fr);
     align-items: center;
     gap: clamp(24px, 4vw, 56px);
 }
@@ -3145,11 +3227,19 @@ body {
 .home-capability-preview {
     width: 100%;
     min-width: 0;
-    height: 220px;
+    height: 340px;
+}
+
+.home-capability-preview-image {
+    object-fit: contain;
+    display: block;
+    transform: scale(1.25);
+    transform-origin: center;
 }
 
 .home-preview-panel {
     min-width: 0;
+    overflow: hidden;
     padding: 10px 12px 4px;
     border: 1px solid rgba(92, 119, 145, .16);
     border-radius: 10px;
@@ -3659,7 +3749,7 @@ html .single-workspace .representation-card {
 
 .single-workspace .representation-controls-row {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) minmax(220px, 1fr) 160px;
+    grid-template-columns: minmax(260px, 1fr) 160px;
     align-items: start;
     gap: 16px;
 }

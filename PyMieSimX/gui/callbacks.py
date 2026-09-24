@@ -479,10 +479,10 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State({"kind": "field", "section": "detector", "name": ALL}, "id"),
         State("measure-select", "value"),
         State("experiment-job", "data"),
-        prevent_initial_call=True,
+        prevent_initial_call="initial_duplicate",
     )
     def _submit_experiment(
-        run_clicks: int,
+        _run_clicks: int,
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -495,9 +495,6 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         measure: str,
         previous_job: dict | None,
     ):
-        if not run_clicks:
-            return no_update, no_update, no_update
-
         LOGGER.debug(
             "Preparing background parameter sweep source=%s scatterer=%s detector=%s measure=%s",
             source_type,
@@ -658,10 +655,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("single-nearfield-mode", "value"),
         State("single-include-incident-field", "value"),
         State("single-run-count", "data"),
-        prevent_initial_call=True,
     )
     def _run_single(
-        run_clicks: int,
+        _run_clicks: int,
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -675,8 +671,6 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         include_incident_field: list[str] | None,
         single_runs: int,
     ):
-        if not run_clicks:
-            return no_update, no_update
         execution = execute_single_callback(
             source_type=source_type,
             source_values=source_values,

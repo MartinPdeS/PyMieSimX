@@ -7,18 +7,18 @@ from PyMieSimX.gui.schemas import SECTION_FIELDS
 
 
 def build_source_section():
-    return _build_section("source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"])
+    return _build_section("source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow")
 
 
 def build_scatterer_section():
-    return _build_section("scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"])
+    return _build_section("scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"], color="blue")
 
 
 def build_detector_section():
-    return _build_section("detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True)
+    return _build_section("detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True, color="cyan")
 
 
-def _build_section(selector_id, fields_id, choices, default, detector=False):
+def _build_section(selector_id, fields_id, choices, default, color, detector=False):
     options = [{"label": "No detector" if detector and key == "None" else key.replace("Set", ""), "value": key} for key in choices]
     persistence_key = "parameter-sweep-detector-default-v3" if detector else "parameter-sweep-defaults-v2"
     detector_alert = (
@@ -33,5 +33,15 @@ def _build_section(selector_id, fields_id, choices, default, detector=False):
     return html.Div(
         id=f"{selector_id}-card",
         className="sidebar-section-body",
-        children=[dcc.Dropdown(id=selector_id, className="dashboard-dropdown", options=options, value=default, clearable=False, searchable=False, optionHeight=38, maxHeight=200, persistence=persistence_key, persistence_type="session"), detector_alert, html.Div(id=fields_id, className="panel-body")],
+        children=[
+            html.Div(
+                className=f"sidebar-type-selector sidebar-type-selector--{color}",
+                children=[
+                    html.Label("Type", className="sidebar-type-label"),
+                    dcc.Dropdown(id=selector_id, className="dashboard-dropdown sidebar-type-dropdown", options=options, value=default, clearable=False, searchable=False, optionHeight=38, maxHeight=200, persistence=persistence_key, persistence_type="session"),
+                ],
+            ),
+            detector_alert,
+            html.Div(id=fields_id, className="panel-body"),
+        ],
     )
