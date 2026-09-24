@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.13"]
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
@@ -22,6 +22,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install package and quality tools
         run: python -m pip install --upgrade pip && python -m pip install -e ".[testing,dev]"
+      - name: Initialize material catalog
+        run: python -m PyOptik setup --no-progress
       - name: Ruff
         run: python -m ruff check PyMieSimX tests
       - name: Mypy
@@ -38,5 +40,7 @@ jobs:
           python-version: "3.11"
       - name: Install package and browser test tools
         run: python -m pip install --upgrade pip && python -m pip install -e ".[testing,browser]"
+      - name: Initialize material catalog
+        run: python -m PyOptik setup --no-progress
       - name: Browser workflow tests
         run: python -m pytest tests/browser --config-file=pytest.ini --headless --cov=PyMieSimX --cov-report=term

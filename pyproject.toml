@@ -9,7 +9,7 @@ description = "Graphical Dash interface for PyMieSim."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "Martin Poinsinet de Sivry-Houle", email = "martin.poinsinet.de.sivry@gmail.com" }
 ]
@@ -37,7 +37,6 @@ testing = [
 ]
 browser = [
     "dash[testing]>=4.1,<5",
-    "selenium>=4.20,<5",
 ]
 dev = [
     "build>=1.2",
@@ -55,7 +54,7 @@ fallback_version = "0+unknown"
 "PyMieSimX.gui" = ["assets/*"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 follow_imports = "skip"
 check_untyped_defs = true

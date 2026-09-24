@@ -29,6 +29,9 @@ jobs:
           python -m pip install --upgrade pip wheel build
           python -m pip install -e ".[testing]"
 
+      - name: Initialize material catalog
+        run: python -m PyOptik setup --no-progress
+
       - name: Run GUI tests with coverage
         run: |
           coverage erase
