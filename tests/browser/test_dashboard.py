@@ -1,5 +1,7 @@
 """Small browser-level smoke suite for the critical dashboard workflow."""
 
+from selenium.webdriver.common.keys import Keys
+
 from PyMieSimX.gui.interface import create_dash_app
 
 
@@ -13,12 +15,11 @@ def test_navigation_validation_execution_plot_and_export_controls(dash_duo):
     dash_duo.wait_for_element("#export-csv")
     dash_duo.wait_for_element("#experiment-tab-source").click()
     dash_duo.wait_for_contains_class("#experiment-right-sidebar", "open")
-    dash_duo.wait_for_element("#source-fields .field-input")
+    dash_duo.wait_for_element("#source-fields input.field-input")
 
-    field = dash_duo.find_element("#source-fields .field-input")
-    field.clear()
-    field.send_keys("-1")
-    field.send_keys("\ue007")
+    field = dash_duo.find_element("#source-fields input.field-input")
+    field.send_keys(Keys.CONTROL, "a")
+    field.send_keys("-1", Keys.ENTER)
     dash_duo.wait_for_element("#source-fields .field-input-invalid")
 
     dash_duo.find_element("#sidebar-link-single").click()
