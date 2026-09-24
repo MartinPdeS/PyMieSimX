@@ -11,6 +11,7 @@ def test_navigation_validation_execution_plot_and_export_controls(dash_duo):
     dash_duo.find_element("#sidebar-link-experiment").click()
     dash_duo.wait_for_element("#result-graph")
     dash_duo.wait_for_element("#export-csv")
+    dash_duo.wait_for_element("#experiment-tab-source").click()
     dash_duo.wait_for_element("#source-fields .field-input")
 
     field = dash_duo.find_element("#source-fields .field-input")
