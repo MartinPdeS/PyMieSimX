@@ -8,8 +8,25 @@ parts of the dashboard testable without invoking Dash's callback machinery.
 from dataclasses import dataclass
 from typing import Any
 
+from dash import html
+
 from PyMieSimX.gui.models import ExperimentResult, MessageLevel, SingleResult
 from PyMieSimX.gui.services import ExperimentValidationError, build_single_figure, run_experiment
+
+
+_STATUS_ICONS = {"idle": "\u25cb", "success": "\u2713", "error": "\u26a0"}
+
+
+def status_banner(level: str, message: str):
+    """Build a status banner with an icon so state isn't conveyed by color alone."""
+    return html.Div(
+        [
+            html.Span(_STATUS_ICONS.get(level, ""), className="status-banner-icon", **{"aria-hidden": "true"}),
+            html.Span(message),
+        ],
+        className=f"status-banner {level}",
+        role="alert" if level == "error" else "status",
+    )
 
 
 @dataclass(frozen=True)

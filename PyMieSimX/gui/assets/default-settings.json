@@ -20,7 +20,7 @@
   "plot": {
     "font_size": 18,
     "line_width": 2,
-    "graph_height": 700,
+    "graph_height": 560,
     "template": "match-theme",
     "show_legend": true,
     "show_grid": true,

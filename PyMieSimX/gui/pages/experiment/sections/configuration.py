@@ -2,24 +2,23 @@
 
 from dash import dcc, html
 
-from PyMieSimX.gui.components import Card
 from PyMieSimX.gui.defaults import DEFAULT_WORKSPACE_SETTINGS
 from PyMieSimX.gui.schemas import SECTION_FIELDS
 
 
 def build_source_section():
-    return _build_section("Source", "source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"], color="yellow", info="Configure the optical source and its wavelength, polarization, and amplitude values. Gaussian is a convenience object parameterized by numerical aperture and optical power; it is not a GLMT implementation.")
+    return _build_section("source-type", "source-fields", SECTION_FIELDS["source"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["source_type"])
 
 
 def build_scatterer_section():
-    return _build_section("Scatterer", "scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"], color="blue", info="Configure particle geometry, material, and surrounding medium values.")
+    return _build_section("scatterer-type", "scatterer-fields", SECTION_FIELDS["scatterer"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["scatterer_type"])
 
 
 def build_detector_section():
-    return _build_section("Detector", "detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True, color="cyan", info="Configure detector collection geometry, sampling, offsets, and mode settings.")
+    return _build_section("detector-type", "detector-fields", SECTION_FIELDS["detector"], DEFAULT_WORKSPACE_SETTINGS["parameter_sweep"]["detector_type"], detector=True)
 
 
-def _build_section(title, selector_id, fields_id, choices, default, detector=False, color="blue", info=""):
+def _build_section(selector_id, fields_id, choices, default, detector=False):
     options = [{"label": "No detector" if detector and key == "None" else key.replace("Set", ""), "value": key} for key in choices]
     persistence_key = "parameter-sweep-detector-default-v3" if detector else "parameter-sweep-defaults-v2"
     detector_alert = (
@@ -31,12 +30,8 @@ def _build_section(title, selector_id, fields_id, choices, default, detector=Fal
         if detector
         else None
     )
-    return html.Details(
+    return html.Div(
         id=f"{selector_id}-card",
-        className=Card.classes(color=color, extra="workflow-card"),
-        open=True,
-        children=[
-            html.Summary(children=[html.Span(title), html.Span("i", className="workflow-info-button", title=info, **{"aria-label": info})]),
-            html.Div(className="workflow-card-body", children=[dcc.Dropdown(id=selector_id, className="dashboard-dropdown", options=options, value=default, clearable=False, searchable=False, optionHeight=38, maxHeight=200, persistence=persistence_key, persistence_type="session"), detector_alert, html.Div(id=fields_id, className="panel-body")]),
-        ],
+        className="sidebar-section-body",
+        children=[dcc.Dropdown(id=selector_id, className="dashboard-dropdown", options=options, value=default, clearable=False, searchable=False, optionHeight=38, maxHeight=200, persistence=persistence_key, persistence_type="session"), detector_alert, html.Div(id=fields_id, className="panel-body")],
     )

@@ -5,7 +5,7 @@ import logging
 from math import isfinite
 from urllib.parse import parse_qs
 
-from dash import ALL, MATCH, Dash, Input, Output, State, dcc, html, no_update
+from dash import ALL, MATCH, Dash, Input, Output, State, ctx, dcc, no_update
 
 from PyMieSimX.gui.layout import THEME_DARK, THEME_LIGHT, build_page_with_footer, render_fields
 from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PARTICLE_PLOT_SETTINGS, DEFAULT_SWEEP_PLOT_SETTINGS
@@ -74,6 +74,66 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         mode = "light" if theme_mode == "light" else "dark"
         logo = "/assets/pymiesim-logo.svg" if mode == "light" else "/assets/pymiesim-logo-dark.svg"
         return (THEME_LIGHT if mode == "light" else THEME_DARK), {"theme": mode}, mode, logo
+
+    def _handle_sidebar_tabs(tab_ids: list[str], colors: list[str], current_class: str | None, current_active: str | None):
+        """Shared logic: switch the active tab/panel, toggling the sidebar open if needed."""
+        clicked = ctx.triggered_id
+        is_open = "open" in (current_class or "").split()
+        if clicked == current_active and is_open:
+            new_open, new_active = False, current_active
+        else:
+            new_open, new_active = True, clicked
+        sidebar_class = "right-sidebar-panel" + (" open" if new_open else "")
+        tab_classes = [
+            f"sidebar-tab sidebar-tab--{color}" + (" active" if new_open and new_active == tab_id else "")
+            for tab_id, color in zip(tab_ids, colors)
+        ]
+        panel_styles = [{} if new_open and new_active == tab_id else {"display": "none"} for tab_id in tab_ids]
+        return sidebar_class, new_active, *tab_classes, *panel_styles
+
+    @app.callback(
+        Output("single-right-sidebar", "className"),
+        Output("single-right-sidebar-active", "data"),
+        Output("single-tab-source", "className"),
+        Output("single-tab-scatterer", "className"),
+        Output("single-tab-plot-options", "className"),
+        Output("single-panel-source", "style"),
+        Output("single-panel-scatterer", "style"),
+        Output("single-panel-plot-options", "style"),
+        Input("single-tab-source", "n_clicks"),
+        Input("single-tab-scatterer", "n_clicks"),
+        Input("single-tab-plot-options", "n_clicks"),
+        State("single-right-sidebar", "className"),
+        State("single-right-sidebar-active", "data"),
+        prevent_initial_call=True,
+    )
+    def _handle_single_sidebar_tabs(_source_clicks, _scatterer_clicks, _plot_clicks, current_class, current_active):
+        tab_ids = ["single-tab-source", "single-tab-scatterer", "single-tab-plot-options"]
+        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "purple"], current_class, current_active)
+
+    @app.callback(
+        Output("experiment-right-sidebar", "className"),
+        Output("experiment-right-sidebar-active", "data"),
+        Output("experiment-tab-source", "className"),
+        Output("experiment-tab-scatterer", "className"),
+        Output("experiment-tab-detector", "className"),
+        Output("experiment-tab-plot-options", "className"),
+        Output("experiment-panel-source", "style"),
+        Output("experiment-panel-scatterer", "style"),
+        Output("experiment-panel-detector", "style"),
+        Output("experiment-panel-plot-options", "style"),
+        Input("experiment-tab-source", "n_clicks"),
+        Input("experiment-tab-scatterer", "n_clicks"),
+        Input("experiment-tab-detector", "n_clicks"),
+        Input("experiment-tab-plot-options", "n_clicks"),
+        State("experiment-right-sidebar", "className"),
+        State("experiment-right-sidebar-active", "data"),
+        prevent_initial_call=True,
+    )
+    def _handle_experiment_sidebar_tabs(_source_clicks, _scatterer_clicks, _detector_clicks, _plot_clicks, current_class, current_active):
+        tab_ids = ["experiment-tab-source", "experiment-tab-scatterer", "experiment-tab-detector", "experiment-tab-plot-options"]
+        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "cyan", "purple"], current_class, current_active)
+
 
     @app.callback(
         Output("page-content", "children"),
@@ -220,6 +280,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
 
     @app.callback(
         Output({"kind": "field", "section": MATCH, "name": ALL}, "className"),
+        Output({"kind": "field-error", "section": MATCH, "name": ALL}, "children"),
         Input({"kind": "field", "section": MATCH, "name": ALL}, "value"),
         State({"kind": "field", "section": MATCH, "name": ALL}, "id"),
         State("source-type", "value", allow_optional=True),
@@ -229,9 +290,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("single-scatterer-type", "value", allow_optional=True),
     )
     def _validate_fields(values, field_ids, source_type, scatterer_type, detector_type, single_source_type, single_scatterer_type):
-        """Mark schema-invalid dynamic inputs without interrupting the form."""
+        """Mark schema-invalid dynamic inputs and surface an inline error message, without interrupting the form."""
         if not field_ids:
-            return []
+            return [], []
 
         selected_types = {
             "source": source_type,
@@ -249,12 +310,14 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         }
 
         classes = []
+        errors = []
         for field_id, raw_value in zip(field_ids, values):
             section = field_id["section"]
             selected_type = selected_types.get(section)
             field_specs = schema_groups.get(section, {}).get(selected_type, ())
             field = next((spec for spec in field_specs if spec.name == field_id["name"]), None)
             valid = field is not None
+            error_message = ""
 
             if field is not None:
                 empty = raw_value is None or str(raw_value).strip() == ""
@@ -265,13 +328,17 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                         if field.name in {"wavelength", "optical_power", "numerical_aperture", "amplitude", "diameter", "core_diameter", "shell_thickness", "sampling"}:
                             _validate_positive_field(field.name, parsed_value)
                         valid = True
-                    except (TypeError, ValueError, KeyError):
+                    except (TypeError, ValueError, KeyError) as error:
                         valid = False
+                        error_message = str(error)
+                elif not field.optional:
+                    error_message = "A value is required."
 
             is_detector_default = section == "detector" and field is not None and field.name in {"polarization_filter", "medium"} and (raw_value is None or str(raw_value).strip() in {"", field.default})
             classes.append("field-input field-input-default" if valid and is_detector_default else "field-input" if valid else "field-input field-input-invalid")
+            errors.append(error_message)
 
-        return classes
+        return classes, errors
 
     @app.callback(Output("source-fields", "children"), Input("source-type", "value"))
     def _render_source_fields(source_type: str):
@@ -398,22 +465,24 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
 
     @app.callback(
         Output("experiment-job", "data"),
-        Output("experiment-computation-status", "children"),
         Output("experiment-job-poll", "disabled", allow_duplicate=True),
-        Input("source-type", "value"),
-        Input({"kind": "field", "section": "source", "name": ALL}, "value"),
+        Output("run-experiment-button", "disabled", allow_duplicate=True),
+        Input("run-experiment-button", "n_clicks"),
+        State("source-type", "value"),
+        State({"kind": "field", "section": "source", "name": ALL}, "value"),
         State({"kind": "field", "section": "source", "name": ALL}, "id"),
-        Input("scatterer-type", "value"),
-        Input({"kind": "field", "section": "scatterer", "name": ALL}, "value"),
+        State("scatterer-type", "value"),
+        State({"kind": "field", "section": "scatterer", "name": ALL}, "value"),
         State({"kind": "field", "section": "scatterer", "name": ALL}, "id"),
-        Input("detector-type", "value"),
-        Input({"kind": "field", "section": "detector", "name": ALL}, "value"),
+        State("detector-type", "value"),
+        State({"kind": "field", "section": "detector", "name": ALL}, "value"),
         State({"kind": "field", "section": "detector", "name": ALL}, "id"),
-        Input("measure-select", "value"),
+        State("measure-select", "value"),
         State("experiment-job", "data"),
         prevent_initial_call=True,
     )
     def _submit_experiment(
+        run_clicks: int,
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -426,6 +495,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         measure: str,
         previous_job: dict | None,
     ):
+        if not run_clicks:
+            return no_update, no_update, no_update
+
         LOGGER.debug(
             "Preparing background parameter sweep source=%s scatterer=%s detector=%s measure=%s",
             source_type,
@@ -449,7 +521,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         if issues:
             message = " ".join(issue.message for issue in issues)
             LOGGER.info("Experiment submission rejected: %s", message)
-            return None, html.Div(f"Cannot run: {message}", className="status-banner error"), True
+            return None, True, False
 
         if previous_job:
             experiment_jobs.cancel(previous_job.get("job_id"))
@@ -471,17 +543,13 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             measure=measure,
         )
         LOGGER.info("Experiment queued job_id=%s rows_estimate=%d bytes_estimate=%d", job_id, estimate.rows, estimate.estimated_bytes)
-        warning = " Warning: this is a large result." if estimate.warning else ""
-        return {"job_id": job_id}, html.Div(
-            f"Queued {estimate.rows:,} combinations (estimated result {estimate.display_size}).{warning}",
-            className="status-banner idle",
-        ), False
+        return {"job_id": job_id}, False, True
 
     @app.callback(
         Output("experiment-result", "data"),
         Output("experiment-run-count", "data"),
-        Output("experiment-computation-status", "children"),
         Output("experiment-job-poll", "disabled"),
+        Output("run-experiment-button", "disabled"),
         Input("experiment-job-poll", "n_intervals"),
         State("experiment-job", "data"),
         State("experiment-run-count", "data"),
@@ -490,22 +558,20 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _poll_experiment_job(_n_intervals: int, job_data: dict | None, experiment_runs: int):
         snapshot = experiment_jobs.snapshot((job_data or {}).get("job_id"))
         if snapshot is None:
-            return no_update, no_update, html.Div("No active experiment job.", className="status-banner error"), True
+            return no_update, no_update, True, no_update
         status = snapshot["status"]
         LOGGER.debug("Polling experiment job_id=%s status=%s", snapshot["job_id"], status)
         if status in {"pending", "running"}:
-            label = "Queued" if status == "pending" else "Computing"
-            return no_update, no_update, html.Div(f"{label} experiment…", className="status-banner idle"), False
+            return no_update, no_update, False, no_update
         if status == "succeeded":
             result = snapshot["result"]
             try:
                 usage_metrics.record_experiment_run()
             except Exception:
                 LOGGER.exception("Failed to record PyMieSimX experiment-run metric.")
-            return result, int(experiment_runs or 0) + 1, None, True
-        return no_update, no_update, html.Div(
-            f"Experiment failed: {snapshot['error'] or 'unknown worker error'}", className="status-banner error"
-        ), True
+            return result, int(experiment_runs or 0) + 1, True, False
+        LOGGER.warning("Experiment job failed job_id=%s error=%s", snapshot["job_id"], snapshot["error"])
+        return no_update, no_update, True, False
 
     @app.callback(
         Output("csv-download", "data"),
@@ -569,23 +635,33 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         return build_figure(result, x_axis, plot_settings=sweep_settings, theme=(theme_store or {}).get("theme", "light"), projection=projection)
 
     @app.callback(
+        Output("export-csv", "disabled"),
+        Input("experiment-result", "data"),
+    )
+    def _toggle_experiment_export(result: dict | None):
+        """Keep Export CSV greyed out until a sweep has actually run."""
+        return not result
+
+    @app.callback(
         Output("single-result", "data"),
         Output("single-run-count", "data"),
-        Output("single-computation-status", "children"),
-        Input("single-source-type", "value"),
-        Input({"kind": "field", "section": "single-source", "name": ALL}, "value"),
+        Input("run-single-button", "n_clicks"),
+        State("single-source-type", "value"),
+        State({"kind": "field", "section": "single-source", "name": ALL}, "value"),
         State({"kind": "field", "section": "single-source", "name": ALL}, "id"),
-        Input("single-scatterer-type", "value"),
-        Input({"kind": "field", "section": "single-scatterer", "name": ALL}, "value"),
+        State("single-scatterer-type", "value"),
+        State({"kind": "field", "section": "single-scatterer", "name": ALL}, "value"),
         State({"kind": "field", "section": "single-scatterer", "name": ALL}, "id"),
-        Input("single-representation", "value"),
-        Input("single-projection", "value"),
-        Input("single-sampling", "value"),
-        Input("single-nearfield-mode", "value"),
-        Input("single-include-incident-field", "value"),
+        State("single-representation", "value"),
+        State("single-projection", "value"),
+        State("single-sampling", "value"),
+        State("single-nearfield-mode", "value"),
+        State("single-include-incident-field", "value"),
         State("single-run-count", "data"),
+        prevent_initial_call=True,
     )
     def _run_single(
+        run_clicks: int,
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -599,6 +675,8 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         include_incident_field: list[str] | None,
         single_runs: int,
     ):
+        if not run_clicks:
+            return no_update, no_update
         execution = execute_single_callback(
             source_type=source_type,
             source_values=source_values,
@@ -615,12 +693,12 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         )
         if execution.level == "error":
             LOGGER.info("Single representation render failed: %s", execution.message)
-            return None, execution.run_count, html.Div(f"Cannot render: {execution.message}", className="status-banner error")
+            return None, execution.run_count
         try:
             usage_metrics.record_single_run()
         except Exception:
             LOGGER.exception("Failed to record PyMieSimX particle-explorer metric.")
-        return execution.result, execution.run_count, None
+        return execution.result, execution.run_count
 
     @app.callback(
         Output("single-representation", "options"),
@@ -733,6 +811,14 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         from plotly.graph_objects import Figure
 
         return apply_plot_settings(Figure(result["figure"]), particle_settings, (theme_store or {}).get("theme", "light"))
+
+    @app.callback(
+        Output("export-single-csv", "disabled"),
+        Input("single-result", "data"),
+    )
+    def _toggle_single_actions(result: dict | None):
+        """Keep Export CSV greyed out until Run has produced a result."""
+        return not result
 
 
 def build_single_empty_figure(plot_settings: dict | None = None, theme: str = "light"):

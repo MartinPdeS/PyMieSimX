@@ -3,8 +3,7 @@
 
 from dash import dcc, html
 
-from PyMieSimX.gui.components import HeaderCard
-from PyMieSimX.gui.layout import PLOT_CONFIG, _plot_options_card, _x_axis_card
+from PyMieSimX.gui.layout import PLOT_CONFIG, _plot_options_card, _x_axis_card, build_plot_options_sidebar, build_tabbed_sidebar
 
 from .sections import build_detector_section, build_scatterer_section, build_source_section
 
@@ -15,33 +14,48 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
     return html.Div(
         className="tab-content-stack experiment-tab-content",
         children=[
-            HeaderCard(
-                "Parameter Sweep Lab",
-                "Configure source, scatterer, and detector, then run parameter sweeps through the compiled engine directly from Dash.",
-                [
-                    ("01", "Configure source", "Choose the source family and sweep its optical parameters.", "yellow"),
-                    ("02", "Configure scatterer", "Set particle geometry, material, and medium values.", "blue"),
-                    ("03", "Configure detector", "Select collection geometry and compute the sweep response.", "orange"),
-                ],
-                color="green",
-            ).render(),
             html.Section(
                 id="configure",
                 className="workspace",
                 children=[
-                    html.Section(
-                        className="control-column",
-                        children=[html.Div(className="set-panel-grid", children=[build_source_section(), build_scatterer_section(), build_detector_section()])],
-                    ),
+                    dcc.Store(id="experiment-job"),
+                    dcc.Interval(id="experiment-job-poll", interval=500, n_intervals=0, disabled=True),
                     html.Section(
                         className="result-column",
                         children=[
-                            html.Section(className="panel graph-panel", children=[dcc.Loading(id="result-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=html.Div(className="plot-loading-target", children=[dcc.Graph(id="result-graph", config=PLOT_CONFIG), html.Div(id="experiment-computation-status"), dcc.Store(id="experiment-job"), dcc.Interval(id="experiment-job-poll", interval=500, n_intervals=0, disabled=True)]))]),
+                            html.Div(
+                                className="graph-toolbar",
+                                children=[
+                                    html.Button(
+                                        [html.Span("\u25b6", className="toolbar-button-icon", **{"aria-hidden": "true"}), "Run"],
+                                        id="run-experiment-button",
+                                        n_clicks=0,
+                                        disabled=False,
+                                        className="toolbar-button toolbar-button-primary",
+                                    ),
+                                    html.Button(
+                                        [html.Span("\u2913", className="toolbar-button-icon", **{"aria-hidden": "true"}), "Export CSV"],
+                                        id="export-csv",
+                                        n_clicks=0,
+                                        disabled=True,
+                                        className="toolbar-button toolbar-button-secondary",
+                                    ),
+                                ],
+                            ),
+                            html.Section(className="panel graph-panel", children=[dcc.Loading(id="result-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=dcc.Graph(id="result-graph", config=PLOT_CONFIG))]),
                             _x_axis_card(default_measure_options),
-                            html.Div(id="experiment-plot-options-container", children=[_plot_options_card("experiment", settings)]),
-                            html.Div(className="export-actions", children=[html.Button("Export CSV", id="export-csv", n_clicks=0, className="run-button export-button")]),
                         ],
                     ),
+                ],
+            ),
+            dcc.Store(id="experiment-right-sidebar-active", data=None),
+            build_tabbed_sidebar(
+                "experiment-right-sidebar",
+                [
+                    {"tab_id": "experiment-tab-source", "panel_id": "experiment-panel-source", "label": "Source", "color": "yellow", "content": build_source_section(), "active": False},
+                    {"tab_id": "experiment-tab-scatterer", "panel_id": "experiment-panel-scatterer", "label": "Scatterer", "color": "blue", "content": build_scatterer_section(), "active": False},
+                    {"tab_id": "experiment-tab-detector", "panel_id": "experiment-panel-detector", "label": "Detector", "color": "cyan", "content": build_detector_section(), "active": False},
+                    {"tab_id": "experiment-tab-plot-options", "panel_id": "experiment-panel-plot-options", "label": "Plot options", "color": "purple", "content": build_plot_options_sidebar("experiment-plot-options-container", _plot_options_card("experiment", settings)), "active": False},
                 ],
             ),
         ],

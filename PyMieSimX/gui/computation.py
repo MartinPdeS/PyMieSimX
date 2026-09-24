@@ -500,7 +500,13 @@ def run_experiment(
 
     dataframe = setup.get(measure, drop_unique_level=True)
     LOGGER.debug("Experiment returned dataframe with shape %s", getattr(dataframe, "shape", None))
-    frame = pd.DataFrame(dataframe).copy()
+    if hasattr(dataframe, "as_dataframe"):
+        # Native LabeledArray results: convert and drop the "section:" column prefixes
+        # (e.g. "source:wavelength") so columns match the plain field names used elsewhere.
+        frame = dataframe.as_dataframe().rename(columns=lambda name: name.split(":", 1)[-1] if isinstance(name, str) else name)
+    else:
+        frame = pd.DataFrame(dataframe)
+    frame = frame.copy()
     frame_memory_bytes = int(frame.memory_usage(deep=True).sum())
     LOGGER.debug("Experiment dataframe shape=%s memory_bytes=%d", frame.shape, frame_memory_bytes)
     if frame_memory_bytes > MAX_RESULT_FRAME_BYTES:
@@ -510,7 +516,8 @@ def run_experiment(
         )
     if frame_memory_bytes >= MAX_RESULT_FRAME_BYTES // 2:
         LOGGER.warning("Large experiment dataframe memory_bytes=%d warning_threshold=%d", frame_memory_bytes, MAX_RESULT_FRAME_BYTES // 2)
-    units = {key: str(value) for key, value in dataframe.attrs.get("units", {}).items()}
+    raw_units = {**dataframe.attrs.get("units", {}), **dataframe.attrs.get("coordinate_units", {})}
+    units = {str(key).split(":", 1)[-1]: str(value) for key, value in raw_units.items()}
 
     for column in frame.columns:
         frame[column] = frame[column].map(serialize_value)

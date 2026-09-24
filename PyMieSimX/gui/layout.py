@@ -92,6 +92,50 @@ def _plot_options_card(prefix: str, settings: dict, representation: str | None =
     )
 
 
+def build_plot_options_sidebar(container_id: str, initial_card):
+    """Wrap a plot-options container so it can be dropped into a tabbed sidebar panel."""
+    return html.Div(id=container_id, children=[initial_card])
+
+
+def build_tabbed_sidebar(sidebar_id: str, tabs: list[dict]):
+    """Build a right-hand sidebar with a fixed, color-coded vertical tab rail.
+
+    Each ``tabs`` entry needs: tab_id, panel_id, label, color, content, active (bool).
+    The tab rail stays visible at all times; only the panel slides in/out.
+    """
+    any_active = any(tab["active"] for tab in tabs)
+    return html.Div(
+        children=[
+            html.Div(
+                className="right-tab-rail",
+                children=[
+                    html.Button(
+                        tab["label"],
+                        id=tab["tab_id"],
+                        n_clicks=0,
+                        type="button",
+                        className=f"sidebar-tab sidebar-tab--{tab['color']}" + (" active" if tab["active"] else ""),
+                    )
+                    for tab in tabs
+                ],
+            ),
+            html.Aside(
+                id=sidebar_id,
+                className="right-sidebar-panel" + (" open" if any_active else ""),
+                children=[
+                    html.Div(
+                        id=tab["panel_id"],
+                        className="sidebar-panel",
+                        style={} if tab["active"] else {"display": "none"},
+                        children=[tab["content"]],
+                    )
+                    for tab in tabs
+                ],
+            ),
+        ],
+    )
+
+
 def _x_axis_card(default_measure_options: list[str]):
     """Build the post-plot X/Y axis selectors, separate from run controls."""
     return html.Section(
@@ -295,7 +339,7 @@ def render_field(section: str, field_spec: FieldSpec):
         return html.Div(
             className="field-block",
             children=[
-                html.Label(_format_field_label(field_spec)),
+                _field_label(field_spec),
                 html.Button(
                     className="material-mode-toggle is-material" if default_is_named else "material-mode-toggle is-index",
                     id={"kind": "material-toggle", "section": section, "name": field_spec.name},
@@ -350,13 +394,14 @@ def render_field(section: str, field_spec: FieldSpec):
                         ),
                     ],
                 ),
+                html.Div(id={"kind": "field-error", "section": section, "name": field_spec.name}, className="field-error"),
             ],
         )
 
     return html.Div(
         className="field-block",
         children=[
-            html.Label(_format_field_label(field_spec)),
+            _field_label(field_spec),
             dcc.Input(
                 id={"kind": "field", "section": section, "name": field_spec.name},
                 type="text",
@@ -367,6 +412,18 @@ def render_field(section: str, field_spec: FieldSpec):
                 persistence=persistence,
                 persistence_type="session",
             ),
+            html.Div(id={"kind": "field-error", "section": section, "name": field_spec.name}, className="field-error"),
+        ],
+    )
+
+
+def _field_label(field_spec: FieldSpec):
+    """Build a field label with a hover/focus tooltip describing accepted syntax."""
+    help_text = field_spec.help_text or _build_default_help_text(field_spec)
+    return html.Label(
+        children=[
+            _format_field_label(field_spec),
+            html.Span("?", className="workflow-info-button field-help-icon", title=help_text, tabIndex=0, **{"aria-label": help_text}),
         ],
     )
 

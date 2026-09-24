@@ -33,18 +33,20 @@ def test_navigation_and_local_metrics(monkeypatch):
 def test_validation_submission_cancellation_and_polling(monkeypatch):
     application = create_dash_app()
     validate = _callback(application, "_validate_fields")
-    classes = validate(
+    classes, errors = validate(
         ["-1"],
         [{"section": "source", "name": "wavelength"}],
         "GaussianSet", "SphereSet", "None", "Gaussian", "Sphere",
     )
     assert classes == ["field-input field-input-invalid"]
+    assert errors[0]
 
     cancelled = []
     monkeypatch.setattr(callbacks.experiment_jobs, "cancel", lambda job_id: cancelled.append(job_id) or True)
     monkeypatch.setattr(callbacks.experiment_jobs, "submit", lambda **_kwargs: "new-job")
     submit = _callback(application, "_submit_experiment")
-    job, status, polling_disabled = submit(
+    job, polling_disabled, run_disabled = submit(
+        1,
         "GaussianSet", ["650", "0", "1e-3", "0.2"],
         [{"name": name} for name in ("wavelength", "polarization", "optical_power", "numerical_aperture")],
         "SphereSet", ["500", "1.4", "1.0"],
@@ -53,8 +55,8 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     )
     assert job == {"job_id": "new-job"}
     assert cancelled == ["old-job"]
-    assert "Queued" in status.children
     assert polling_disabled is False
+    assert run_disabled is True
 
     result = {"rows": [{"Qsca": 1.0}], "columns": ["Qsca"], "parameter_columns": [], "measure": "Qsca", "units": {}, "row_count": 1}
     monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: {
@@ -62,11 +64,11 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
         "submitted_at": "now", "started_at": "now", "finished_at": "now",
     })
     poll = _callback(application, "_poll_experiment_job")
-    completed, count, message, disabled = poll(1, job, 2)
+    completed, count, disabled, run_disabled = poll(1, job, 2)
     assert completed == result
     assert count == 3
-    assert message is None
     assert disabled is True
+    assert run_disabled is False
 
 
 def test_plot_and_csv_callbacks():
