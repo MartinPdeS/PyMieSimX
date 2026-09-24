@@ -357,8 +357,9 @@ def render_field(section: str, field_spec: FieldSpec):
         default_text = str(field_spec.default)
         default_is_named = any(char.isalpha() for char in default_text)
         named_options = material_dropdown_options(medium=is_medium)
-        default_from_catalog = named_options[0]["value"] if named_options else "fused_silica"
-        named_default = default_text if default_is_named else default_from_catalog
+        default_from_catalog = named_options[0]["value"] if named_options else None
+        named_values = {option["value"] for option in named_options}
+        named_default = default_text if default_is_named and default_text in named_values else default_from_catalog
         return html.Div(
             className="field-block",
             children=[
@@ -368,6 +369,8 @@ def render_field(section: str, field_spec: FieldSpec):
                     id={"kind": "material-toggle", "section": section, "name": field_spec.name},
                     n_clicks=1 if default_is_named else 0,
                     type="button",
+                    disabled=not named_options,
+                    title=None if named_options else "Run 'python -m PyOptik setup' to install the material catalog.",
                     children=[
                         html.Span("RI", className="material-mode-label material-mode-label-ri"),
                         html.Span(className="material-mode-knob"),
@@ -407,10 +410,12 @@ def render_field(section: str, field_spec: FieldSpec):
                                     value=named_default,
                                     clearable=False,
                                     searchable=True,
+                                    disabled=not named_options,
+                                    placeholder="Run PyOptik setup to load materials" if not named_options else None,
                                     optionHeight=38,
                                     maxHeight=240,
                                     className="dashboard-dropdown material-name-select",
-                                    persistence=persistence,
+                                    persistence="pyoptik-catalog-v1",
                                     persistence_type="session",
                                 ),
                             ],
@@ -473,5 +478,5 @@ def _build_default_help_text(field_spec: FieldSpec) -> str:
 def _format_field_label(field_spec: FieldSpec) -> str:
     """Put the unit beside the label so cards stay compact."""
     if field_spec.unit is None:
-        return field_spec.label
+        return str(field_spec.label)
     return f"{field_spec.label} [{field_spec.unit}]"

@@ -2,13 +2,27 @@
 
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from PyMieSim.materials import available_materials
+from PyMieSim.material import SellmeierMaterial, SellmeierMedium, TabulatedMaterial
 
 
 ASSET_CATALOG_PATH = Path(__file__).with_name("assets") / "materials-stock.json"
+
+_PYOPTIK_MATERIALS = (
+    ("Fused silica", "Malitson", "main/SiO2/Malitson", "sellmeier"),
+    ("BK7 optical glass", "SCHOTT P-BK7", "specs/SCHOTT-optical/P-BK7", "sellmeier"),
+    ("Water", "Daimon, 19 °C", "main/H2O/Daimon-19.0C", "sellmeier"),
+    ("Air", "Ciddor", "other/air/Ciddor", "sellmeier"),
+    ("Polystyrene", "Sultanova", "organic/polystyrene/Sultanova", "sellmeier"),
+    ("N-BAK1 optical glass", "SCHOTT", "specs/SCHOTT-optical/N-BAK1", "sellmeier"),
+    ("N-BAF10 optical glass", "SCHOTT", "specs/SCHOTT-optical/N-BAF10", "sellmeier"),
+    ("Silver", "Johnson & Christy", "main/Ag/Johnson", "tabulated"),
+    ("Gold", "Olmon, evaporated", "main/Au/Olmon-ev", "tabulated"),
+    ("Aluminium", "Rakić", "main/Al/Rakic", "tabulated"),
+)
 
 _FALLBACK_MATERIALS = [
     "fused_silica",
@@ -63,10 +77,29 @@ def load_material_catalog() -> dict[str, Any]:
     }
 
 
+@lru_cache(maxsize=2)
 def material_dropdown_options(*, medium: bool = False) -> list[dict[str, str]]:
-    """Build options from PyMieSim's active PyOptik-backed registry."""
-    kind = "sellmeier" if medium else "auto"
-    return [{"label": _to_display_name(name), "value": name} for name in available_materials(kind)]
+    """Build curated options from canonical, resolvable PyOptik pages."""
+    options = []
+    for name, source, identifier, model_kind in _PYOPTIK_MATERIALS:
+        if medium and model_kind != "sellmeier":
+            continue
+        if not _material_is_available(identifier, medium=medium):
+            continue
+        options.append({"label": f"{name} · {source}", "value": identifier})
+    return options
+
+
+def _material_is_available(name: str, *, medium: bool) -> bool:
+    """Return whether a named material resolves through the active catalog."""
+    constructors = (SellmeierMedium,) if medium else (SellmeierMaterial, TabulatedMaterial)
+    for constructor in constructors:
+        try:
+            constructor(name)
+            return True
+        except Exception:
+            continue
+    return False
 
 
 def _to_display_name(name: str) -> str:

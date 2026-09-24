@@ -52,12 +52,15 @@ def test_parse_material_values_supports_named_materials():
 
 
 def test_material_options_follow_the_pymiesim_pyoptik_registry():
-    material_values = {option["value"] for option in material_dropdown_options()}
-    medium_values = {option["value"] for option in material_dropdown_options(medium=True)}
+    material_options = material_dropdown_options()
+    medium_options = material_dropdown_options(medium=True)
+    material_values = {option["value"] for option in material_options}
+    medium_values = {option["value"] for option in medium_options}
 
-    assert {"BK7", "fused_silica", "silver", "gold"} <= material_values
-    assert medium_values == {"BK7", "fused_silica", "water"}
-    assert {"silver", "gold"}.isdisjoint(medium_values)
+    assert material_options[0] == {"label": "Fused silica · Malitson", "value": "main/SiO2/Malitson"}
+    assert {"specs/SCHOTT-optical/P-BK7", "main/Ag/Johnson", "main/Au/Olmon-ev"} <= material_values
+    assert {"main/SiO2/Malitson", "main/H2O/Daimon-19.0C", "other/air/Ciddor"} <= medium_values
+    assert {"main/Ag/Johnson", "main/Au/Olmon-ev"}.isdisjoint(medium_values)
 
 
 def test_parse_material_values_supports_canonical_pyoptik_ids():

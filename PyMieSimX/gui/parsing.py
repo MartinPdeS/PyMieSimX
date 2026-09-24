@@ -180,4 +180,7 @@ def _resolve_material_entry(value: Any, *, medium: bool) -> Any:
         except Exception as error:  # pragma: no cover
             last_error = error
 
+    if isinstance(last_error, FileNotFoundError):
+        raise ValueError(str(last_error)) from last_error
+
     raise ValueError(f"Unknown {'medium' if medium else 'material'} '{value}'.") from last_error
