@@ -12,6 +12,7 @@ from flask import Flask, redirect
 
 from PyMieSimX.gui.callbacks import register_callbacks
 from PyMieSimX.gui.layout import create_layout
+from PyMieSimX.gui.material_catalog import ensure_material_catalog
 from PyMieSimX.gui.services import available_measures
 
 LOGGER = logging.getLogger(__name__)
@@ -22,6 +23,15 @@ PLATFORM_HINTS = {
     "macos": ("mac", "darwin", "osx", ".dmg", ".pkg"),
     "linux": ("linux", "manylinux", "appimage", ".deb", ".rpm"),
 }
+
+
+def _initialize_material_catalog() -> None:
+    """Prepare PyOptik data before any server builds the dashboard layout."""
+    try:
+        catalog_file = ensure_material_catalog()
+        LOGGER.info("PyOptik material catalog ready at %s", catalog_file)
+    except Exception as error:
+        LOGGER.warning("Unable to initialize the PyOptik material catalog: %s", error)
 
 
 def create_dash_app() -> Dash:
@@ -86,6 +96,7 @@ class OpticalSetupGUI:
         self.app.run(debug=debug, host=host, port=port)
 
 
+_initialize_material_catalog()
 app = create_dash_app()
 server = app.server
 

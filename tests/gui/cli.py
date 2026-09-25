@@ -4,8 +4,8 @@
 from pathlib import Path
 
 from PyMieSimX.__main__ import _build_argument_parser
-from PyMieSimX.gui.interface import create_dash_app
-from PyMieSimX.gui import material_catalog
+from PyMieSimX.gui.interface import _initialize_material_catalog, create_dash_app
+from PyMieSimX.gui import interface, material_catalog
 
 
 def test_cli_defaults_are_stable():
@@ -46,3 +46,12 @@ def test_material_catalog_setup_reuses_or_downloads_snapshot(tmp_path, monkeypat
     downloaded.clear()
     assert material_catalog.ensure_material_catalog() == Path(tmp_path) / "catalog-nk.yml"
     assert downloaded == []
+
+
+def test_server_startup_initializes_material_catalog(monkeypatch):
+    initialized = []
+    monkeypatch.setattr(interface, "ensure_material_catalog", lambda: initialized.append(True) or Path("catalog-nk.yml"))
+
+    _initialize_material_catalog()
+
+    assert initialized == [True]
