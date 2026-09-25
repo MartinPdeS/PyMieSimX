@@ -3,10 +3,13 @@
 
 import json
 from functools import lru_cache
+import os
 from pathlib import Path
 from typing import Any
 
 from PyMieSim.material import SellmeierMaterial, SellmeierMedium, TabulatedMaterial
+from PyOptik import download_snapshot
+from PyOptik.directories import user_data_path
 
 
 ASSET_CATALOG_PATH = Path(__file__).with_name("assets") / "materials-stock.json"
@@ -48,6 +51,17 @@ _FALLBACK_SELLMEIER_REFERENCE = {
     "C2_um2": "0.013512063",
     "C3_um2": "97.9340025",
 }
+
+
+def ensure_material_catalog() -> Path:
+    """Download PyOptik's full material snapshot when it is not installed."""
+    configured_root = os.environ.get("PYMIESIM_PYOPTIK_DATA_ROOT")
+    data_root = Path(configured_root).expanduser() if configured_root else user_data_path / "rii"
+    catalog_file = data_root / "catalog-nk.yml"
+    if not catalog_file.is_file():
+        download_snapshot(data_root=data_root)
+    material_dropdown_options.cache_clear()
+    return catalog_file
 
 
 def load_material_catalog() -> dict[str, Any]:

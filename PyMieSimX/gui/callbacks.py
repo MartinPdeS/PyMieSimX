@@ -643,6 +643,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("single-result", "data"),
         Output("single-run-count", "data"),
         Input("run-single-button", "n_clicks"),
+        Input("single-projection", "value"),
         State("single-source-type", "value"),
         State({"kind": "field", "section": "single-source", "name": ALL}, "value"),
         State({"kind": "field", "section": "single-source", "name": ALL}, "id"),
@@ -650,7 +651,6 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State({"kind": "field", "section": "single-scatterer", "name": ALL}, "value"),
         State({"kind": "field", "section": "single-scatterer", "name": ALL}, "id"),
         State("single-representation", "value"),
-        State("single-projection", "value"),
         State("single-sampling", "value"),
         State("single-nearfield-mode", "value"),
         State("single-include-incident-field", "value"),
@@ -658,6 +658,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     )
     def _run_single(
         _run_clicks: int,
+        projection: str,
         source_type: str,
         source_values: list[str],
         source_ids: list[dict[str, str]],
@@ -665,7 +666,6 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         scatterer_values: list[str],
         scatterer_ids: list[dict[str, str]],
         representation: str,
-        projection: str,
         sampling: int,
         nearfield_mode: list[str] | str | None,
         include_incident_field: list[str] | None,

@@ -19,12 +19,12 @@ solver.
 Installation
 ------------
 
-Install the GUI and its PyMieSim dependency with::
+Install the GUI with PyMieSim and PyOptik with::
 
     pip install PyMieSimX
 
-Named materials use PyOptik's local RefractiveIndex.INFO snapshot. Initialize
-it once after installation::
+The first ``pymiesimx`` launch downloads PyOptik's complete
+RefractiveIndex.INFO snapshot. It can also be initialized explicitly with::
 
     python -m PyOptik setup --no-progress
 

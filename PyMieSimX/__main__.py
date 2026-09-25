@@ -5,6 +5,9 @@ import logging
 import sys
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 def _build_argument_parser() -> argparse.ArgumentParser:
     """Create the CLI parser for the dashboard launcher."""
     parser = argparse.ArgumentParser(description="Launch the PyMieSimX dashboard.")
@@ -32,6 +35,12 @@ def main(argv: list[str] | None = None) -> None:
     """Launch the PyMieSimX dashboard from a console entry point."""
     args = _build_argument_parser().parse_args(argv)
     configure_logging(debug=args.debug)
+    from PyMieSimX.gui.material_catalog import ensure_material_catalog
+
+    try:
+        ensure_material_catalog()
+    except (OSError, ValueError) as error:
+        LOGGER.warning("Unable to initialize the PyOptik material catalog: %s", error)
     from PyMieSimX.gui.interface import OpticalSetupGUI
 
     OpticalSetupGUI().run(

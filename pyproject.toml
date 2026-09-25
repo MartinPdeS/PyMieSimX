@@ -15,6 +15,7 @@ authors = [
 ]
 dependencies = [
     "PyMieSim>=5.6.4,<6",
+    "PyOptik>=3.2.1,<4",
     "dash>=4.1.0,<5",
     "gunicorn>=23.0.0,<24",
     "numpy>=2.0,<3",

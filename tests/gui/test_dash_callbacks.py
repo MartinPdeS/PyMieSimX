@@ -5,6 +5,7 @@ from math import isnan
 from dash import no_update
 
 from PyMieSimX.gui import callbacks, usage_metrics
+from PyMieSimX.gui.callback_helpers import CallbackExecution
 from PyMieSimX.gui.interface import create_dash_app
 
 
@@ -84,3 +85,34 @@ def test_plot_and_csv_callbacks():
     download = export(1, result, "Qsca")
     assert download["filename"] == "pymiesim_Qsca.csv"
     assert "Qsca" in download["content"]
+
+
+def test_single_projection_refreshes_result(monkeypatch):
+    application = create_dash_app()
+    captured = {}
+
+    def execute(**kwargs):
+        captured.update(kwargs)
+        return CallbackExecution({"figure": {}, "summary": {}}, 2, "done", "success")
+
+    monkeypatch.setattr(callbacks, "execute_single_callback", execute)
+    run_single = _callback(application, "_run_single")
+    result, run_count = run_single(
+        1,
+        "3d_radial",
+        "Gaussian",
+        [],
+        [],
+        "Sphere",
+        [],
+        [],
+        "spf",
+        120,
+        [],
+        [],
+        1,
+    )
+
+    assert captured["projection"] == "3d_radial"
+    assert result == {"figure": {}, "summary": {}}
+    assert run_count == 2

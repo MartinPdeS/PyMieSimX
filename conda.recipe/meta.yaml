@@ -18,6 +18,7 @@ requirements:
   run:
     - python {{ PY_VER }}*
     - pymiesim >=5.6.4,<6
+    - pyoptik >=3.2.1,<4
     - dash >=4.1.0,<5
     - gunicorn >=23.0.0,<24  # [not win]
     - numpy >=2.0,<3
