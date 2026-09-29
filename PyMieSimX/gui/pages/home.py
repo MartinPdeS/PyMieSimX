@@ -39,8 +39,8 @@ def build_home_page():
                         ["Configure source", "Configure scatterer", "Render representations"],
                         "Open Particle Explorer",
                         "/single",
-                        html.Img(src="/assets/home-spf-radial.png", className="home-capability-preview home-capability-preview-image", alt="Scattering phase function 3D radial surface"),
-                        "Scattering phase function — 3D radial surface",
+                        html.Img(src="/assets/home-spf-radial.gif", className="home-capability-preview home-capability-preview-image", alt="Rotating scattering phase function 3D radial surface"),
+                        "Scattering phase function — rotating 3D radial surface",
                         "purple",
                     ),
                     _capability_card(
@@ -135,17 +135,41 @@ def _qsca_preview() -> go.Figure:
     """Build an illustrative scattering-efficiency sweep preview."""
     diameter = np.linspace(80.0, 1000.0, 180)
     envelope = 2.0 * (1.0 - np.exp(-diameter / 260.0))
-    resonances = 0.52 * np.sin(diameter / 54.0) * np.exp(-diameter / 900.0)
-    qsca = np.clip(envelope + resonances, 0.0, None)
-    figure = go.Figure(
+    low_index_qsca = np.clip(
+        envelope + 0.34 * np.sin(diameter / 62.0) * np.exp(-diameter / 920.0),
+        0.0,
+        None,
+    )
+    high_index_qsca = np.clip(
+        1.08 * envelope + 0.62 * np.sin(diameter / 49.0) * np.exp(-diameter / 820.0),
+        0.0,
+        None,
+    )
+    figure = go.Figure()
+    figure.add_trace(
         go.Scatter(
             x=diameter,
-            y=qsca,
+            y=low_index_qsca,
             mode="lines",
             line={"color": "#2672d6", "width": 3},
-            fill="tozeroy",
-            fillcolor="rgba(38,114,214,.10)",
+            name="n = 1.45",
             hoverinfo="skip",
         )
     )
-    return _preview_layout(figure, x_title="Diameter (nm)", y_title="Qsca")
+    figure.add_trace(
+        go.Scatter(
+            x=diameter,
+            y=high_index_qsca,
+            mode="lines",
+            line={"color": "#1c7c54", "width": 3},
+            name="n = 1.59",
+            hoverinfo="skip",
+        )
+    )
+    figure = _preview_layout(figure, x_title="Diameter (nm)", y_title="Qsca")
+    figure.update_layout(
+        showlegend=True,
+        legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": 1.13, "font": {"size": 10}},
+        margin={"t": 32},
+    )
+    return figure

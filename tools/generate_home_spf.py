@@ -1,18 +1,22 @@
-"""Generate the static high-resolution SPF preview used on the home page."""
+"""Generate the animated SPF preview used on the home page."""
 
+from matplotlib.animation import FuncAnimation, PillowWriter
 from pathlib import Path
 
 import numpy as np
+import matplotlib
 from matplotlib import cm
 from matplotlib.colors import Normalize
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from PyMieSimX.gui.computation import build_single_figure
 
 
-OUTPUT_PATH = Path(__file__).parents[1] / "PyMieSimX" / "gui" / "assets" / "home-spf-radial.png"
+OUTPUT_PATH = Path(__file__).parents[1] / "PyMieSimX" / "gui" / "assets" / "home-spf-radial.gif"
 CAMERA_ELEVATION = 18
-CAMERA_AZIMUTH = 18
+FRAME_COUNT = 48
 
 
 def main() -> None:
@@ -23,7 +27,7 @@ def main() -> None:
         scatterer_values={"diameter": "100"},
         representation="spf",
         projection="3d_radial",
-        sampling=300,
+        sampling=120,
     )
     trace = figure.data[0]
     intensity = trace.surfacecolor
@@ -46,24 +50,25 @@ def main() -> None:
     x_values = sphere_x * radius
     y_values = sphere_y * radius
     z_values = sphere_z * radius
-    colors = cm.viridis(Normalize(vmin=lower, vmax=upper)(values))
+    surface_colors = cm.viridis(Normalize(vmin=lower, vmax=upper)(values))
+    background_color = "#f5f8fc"
 
-    output = plt.figure(figsize=(10, 8), dpi=320, facecolor="none")
+    output = plt.figure(figsize=(5.5, 5.5), dpi=110, facecolor=background_color)
     axes = output.add_subplot(111, projection="3d")
-    axes.set_facecolor((0, 0, 0, 0))
+    axes.set_facecolor(background_color)
     axes.plot_surface(
         x_values,
         y_values,
         z_values,
-        facecolors=colors,
-        rcount=x_values.shape[0],
-        ccount=x_values.shape[1],
-        linewidth=0,
+        facecolors=surface_colors,
+        rcount=60,
+        ccount=60,
+        edgecolor="#000000",
+        linewidth=0.22,
         antialiased=True,
         shade=False,
     )
     axes.set_proj_type("ortho")
-    axes.view_init(elev=CAMERA_ELEVATION, azim=CAMERA_AZIMUTH)
     extent = max(
         float(abs(x_values).max()),
         float(abs(y_values).max()),
@@ -75,8 +80,19 @@ def main() -> None:
     axes.set_box_aspect((1, 1, 1))
     axes.set_axis_off()
     output.subplots_adjust(left=0, right=1, bottom=0, top=1)
-    output.savefig(OUTPUT_PATH, transparent=True, bbox_inches="tight", pad_inches=0.02)
-    plt.show()
+
+    def rotate(frame: int):
+        angle = 2.0 * np.pi * frame / FRAME_COUNT
+        elevation = CAMERA_ELEVATION + 12.0 * np.sin(angle)
+        axes.view_init(elev=elevation, azim=360.0 * frame / FRAME_COUNT)
+        return (axes,)
+
+    animation = FuncAnimation(output, rotate, frames=FRAME_COUNT, interval=1000 / 24, blit=False)
+    animation.save(
+        OUTPUT_PATH,
+        writer=PillowWriter(fps=24),
+        savefig_kwargs={"facecolor": background_color},
+    )
     plt.close(output)
 
 
