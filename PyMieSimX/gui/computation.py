@@ -288,7 +288,7 @@ def build_single_figure(
     scatterer_values: Dict[str, Any],
     representation: str,
     sampling: int,
-    projection: str = "2d",
+    projection: str = "3d_radial",
     nearfield_mode: str = "absolute",
     include_incident_field: bool = True,
     plot_settings: dict[str, Any] | None = None,
@@ -391,7 +391,14 @@ def build_single_figure(
                 else:
                     surface_x, surface_y, surface_z = sphere_x, sphere_y, sphere_z
                 figure = go.Figure(data=go.Surface(x=surface_x, y=surface_y, z=surface_z, surfacecolor=surface_values, colorscale="Viridis", colorbar={"title": value_unit}))
-                figure.update_layout(scene={"xaxis_title": "x", "yaxis_title": "y", "zaxis_title": "z", "aspectmode": "cube"})
+                figure.update_layout(
+                    scene={
+                        "xaxis": {"title": "x", "range": [-1, 1]},
+                        "yaxis": {"title": "y", "range": [-1, 1]},
+                        "zaxis": {"title": "z", "range": [-1, 1]},
+                        "aspectmode": "cube",
+                    }
+                )
             else:
                 figure = go.Figure(data=go.Heatmap(x=azimuth, y=polar, z=values, colorscale="Viridis", colorbar={"title": value_unit}))
                 figure.update_xaxes(title="Azimuth angle [degree]")

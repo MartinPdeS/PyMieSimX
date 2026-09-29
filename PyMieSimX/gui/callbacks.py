@@ -75,9 +75,17 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         logo = "/assets/pymiesim-logo.svg" if mode == "light" else "/assets/pymiesim-logo-dark.svg"
         return (THEME_LIGHT if mode == "light" else THEME_DARK), {"theme": mode}, mode, logo
 
-    def _handle_sidebar_tabs(tab_ids: list[str], colors: list[str], current_class: str | None, current_active: str | None):
+    def _handle_sidebar_tabs(tab_ids: list[str], colors: list[str], current_class: str | None, current_active: str | None, sidebar_id: str):
         """Shared logic: switch the active tab/panel, toggling the sidebar open if needed."""
-        clicked = ctx.triggered_id
+        clicked = next((tab_id for tab_id in tab_ids if f"{tab_id}.n_clicks" in ctx.triggered_prop_ids), ctx.triggered_id)
+        sidebar_was_clicked = f"{sidebar_id}.n_clicks" in ctx.triggered_prop_ids
+        tab_was_clicked = clicked in tab_ids
+        if sidebar_was_clicked and not tab_was_clicked:
+            return (no_update,) * (2 + 2 * len(tab_ids))
+        if clicked == "page-content" and not sidebar_was_clicked or clicked == "dashboard-sidebar":
+            tab_classes = [f"sidebar-tab sidebar-tab--{color}" for color in colors]
+            panel_styles = [{"display": "none"} for _ in tab_ids]
+            return "right-sidebar-panel", current_active, *tab_classes, *panel_styles
         is_open = "open" in (current_class or "").split()
         if clicked == current_active and is_open:
             new_open, new_active = False, current_active
@@ -103,13 +111,16 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("single-tab-source", "n_clicks"),
         Input("single-tab-scatterer", "n_clicks"),
         Input("single-tab-plot-options", "n_clicks"),
+        Input("page-content", "n_clicks"),
+        Input("dashboard-sidebar", "n_clicks"),
+        Input("single-right-sidebar", "n_clicks"),
         State("single-right-sidebar", "className"),
         State("single-right-sidebar-active", "data"),
         prevent_initial_call=True,
     )
-    def _handle_single_sidebar_tabs(_source_clicks, _scatterer_clicks, _plot_clicks, current_class, current_active):
+    def _handle_single_sidebar_tabs(_source_clicks, _scatterer_clicks, _plot_clicks, _page_clicks, _sidebar_clicks, _right_sidebar_clicks, current_class, current_active):
         tab_ids = ["single-tab-source", "single-tab-scatterer", "single-tab-plot-options"]
-        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "purple"], current_class, current_active)
+        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "purple"], current_class, current_active, "single-right-sidebar")
 
     @app.callback(
         Output("experiment-right-sidebar", "className"),
@@ -126,13 +137,16 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("experiment-tab-scatterer", "n_clicks"),
         Input("experiment-tab-detector", "n_clicks"),
         Input("experiment-tab-plot-options", "n_clicks"),
+        Input("page-content", "n_clicks"),
+        Input("dashboard-sidebar", "n_clicks"),
+        Input("experiment-right-sidebar", "n_clicks"),
         State("experiment-right-sidebar", "className"),
         State("experiment-right-sidebar-active", "data"),
         prevent_initial_call=True,
     )
-    def _handle_experiment_sidebar_tabs(_source_clicks, _scatterer_clicks, _detector_clicks, _plot_clicks, current_class, current_active):
+    def _handle_experiment_sidebar_tabs(_source_clicks, _scatterer_clicks, _detector_clicks, _plot_clicks, _page_clicks, _sidebar_clicks, _right_sidebar_clicks, current_class, current_active):
         tab_ids = ["experiment-tab-source", "experiment-tab-scatterer", "experiment-tab-detector", "experiment-tab-plot-options"]
-        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "cyan", "purple"], current_class, current_active)
+        return _handle_sidebar_tabs(tab_ids, ["yellow", "blue", "cyan", "purple"], current_class, current_active, "experiment-right-sidebar")
 
 
     @app.callback(
@@ -747,7 +761,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 {"label": "3D radial surface", "value": "3d_radial"},
             ])
         is_nearfield = str(representation or "").startswith("nearfields")
-        nearfield_style = {"display": "block" if is_nearfield else "none"}
+        nearfield_style = {} if is_nearfield else {"display": "none"}
         return options, current_projection if supports_3d and current_projection in {"3d", "3d_radial"} else "2d", nearfield_style, nearfield_style, nearfield_style
 
     @app.callback(

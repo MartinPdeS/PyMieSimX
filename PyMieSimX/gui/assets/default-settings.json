@@ -12,8 +12,8 @@
     "particle_explorer": {
       "source_type": "PlaneWave",
       "scatterer_type": "Sphere",
-      "representation": "s1s2",
-      "projection": "2d",
+      "representation": "spf",
+      "projection": "3d_radial",
       "sampling": 120
     }
   },

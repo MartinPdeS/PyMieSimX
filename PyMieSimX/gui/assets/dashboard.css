@@ -2846,7 +2846,7 @@ button.material-name-select:focus-visible {
     justify-content: flex-start;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 0;
 }
 
 .graph-toolbar + .status-banner {
@@ -3666,8 +3666,8 @@ html .plot-options-card .plot-option-control.dashboard-dropdown .Select-control 
 
 .graph-axis-card {
     display: block;
-    margin: 0 14px;
-    padding: 12px 14px;
+    margin: 0;
+    padding: 8px 12px;
     border: 1px solid rgba(96, 110, 123, .20);
     border-radius: 8px;
     background: #f7f8f9;
@@ -3703,14 +3703,14 @@ html .plot-options-card .plot-option-control.dashboard-dropdown .Select-control 
 /* Match Particle Explorer representation controls to the compact Graph Axes
    card used by Parameter Sweep. */
 .single-workspace .representation-card {
-    width: calc(100% - 28px);
+    width: 100%;
     max-width: none;
     height: fit-content;
     min-height: 0;
     margin: 0 14px;
     align-self: start;
     box-sizing: border-box;
-    padding: 12px 14px;
+    padding: 8px 12px;
     border: 1px solid rgba(96, 110, 123, .20);
     border-radius: 8px;
     background: #f7f8f9;
@@ -3741,24 +3741,43 @@ html .single-workspace .representation-card {
 .single-workspace .representation-card-body {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     height: auto;
     min-height: 0;
-    padding: 0;
+    padding: 0 !important;
 }
 
 .single-workspace .representation-controls-row {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) 160px;
-    align-items: start;
+    grid-template-columns: minmax(260px, 420px) 150px 110px;
+    align-items: center;
+    justify-content: start;
     gap: 16px;
 }
 
 .single-workspace .nearfield-controls-row {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 48px;
+}
+
+.single-workspace .nearfield-control {
     display: grid;
-    grid-template-columns: 100px 140px;
-    align-items: start;
-    gap: 16px;
+    grid-template-columns: minmax(74px, 1fr) 44px;
+    align-items: center;
+    gap: 8px;
+    height: 24px;
+}
+
+.single-workspace .nearfield-control .nearfield-switch {
+    margin: 0;
+}
+
+.single-workspace .nearfield-control .nearfield-switch label {
+    min-height: 24px;
+    padding-left: 42px;
 }
 
 .single-workspace .representation-card-body .field-block {
@@ -3773,10 +3792,24 @@ html .single-workspace .representation-card {
     font-weight: 650;
 }
 
+.single-workspace .representation-card-body .nearfield-control > label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    white-space: nowrap;
+}
+
 .single-workspace .representation-card-body .field-input {
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
+}
+
+.single-workspace #single-sampling {
+    height: 34px !important;
+    min-height: 34px !important;
+    padding-top: 4px;
+    padding-bottom: 4px;
 }
 
 .single-workspace .representation-card-body .dashboard-dropdown {
@@ -3791,9 +3824,14 @@ html .single-workspace .representation-card {
     max-height: 400px !important;
 }
 
-@media (max-width: 620px) {
-    .single-workspace .representation-card-body {
+@media (max-width: 760px) {
+    .single-workspace .representation-controls-row {
         grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .single-workspace .nearfield-controls-row {
+        max-width: 180px;
     }
 }
 

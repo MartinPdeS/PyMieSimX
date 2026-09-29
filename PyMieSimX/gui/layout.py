@@ -144,6 +144,7 @@ def build_tabbed_sidebar(sidebar_id: str, tabs: list[dict]):
             html.Aside(
                 id=sidebar_id,
                 className="right-sidebar-panel" + (" open" if any_active else ""),
+                n_clicks=0,
                 children=[
                     html.Div(
                         id=tab["panel_id"],
@@ -159,7 +160,7 @@ def build_tabbed_sidebar(sidebar_id: str, tabs: list[dict]):
 
 
 def _x_axis_card(default_measure_options: list[str]):
-    """Build the post-plot X/Y axis selectors, separate from run controls."""
+    """Build the pre-plot X/Y axis selectors, separate from run controls."""
     return html.Section(
         className="graph-axis-card",
         children=[
@@ -234,6 +235,7 @@ def create_layout(default_measure_options: list[str]):
                     html.Main(
                         id="page-content",
                         className="dashboard-main",
+                        n_clicks=0,
                         children=[],
                     ),
                 ],
@@ -283,7 +285,9 @@ def build_page_with_footer(page):
 def _build_sidebar():
     """Create the dashboard sidebar."""
     return html.Aside(
+        id="dashboard-sidebar",
         className="dashboard-sidebar",
+        n_clicks=0,
         children=[
             html.Div(
                 className="sidebar-brand",

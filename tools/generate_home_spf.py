@@ -11,8 +11,8 @@ from PyMieSimX.gui.computation import build_single_figure
 
 
 OUTPUT_PATH = Path(__file__).parents[1] / "PyMieSimX" / "gui" / "assets" / "home-spf-radial.png"
-CAMERA_ELEVATION = 35
-CAMERA_AZIMUTH = 32
+CAMERA_ELEVATION = 18
+CAMERA_AZIMUTH = 18
 
 
 def main() -> None:
@@ -20,7 +20,7 @@ def main() -> None:
         source_type="Gaussian",
         source_values={},
         scatterer_type="Sphere",
-        scatterer_values={"diameter": "1000"},
+        scatterer_values={"diameter": "100"},
         representation="spf",
         projection="3d_radial",
         sampling=300,
@@ -28,10 +28,9 @@ def main() -> None:
     trace = figure.data[0]
     intensity = trace.surfacecolor
 
-    # A larger particle produces a highly lobed SPF whose magnitude spans
-    # several orders of magnitude; a linear radius collapses almost every
-    # lobe against the strong forward-scattering peak, so re-derive the
-    # surface with a log-scaled radius to keep the side lobes visible.
+    # Keep the small-particle preview gentle and readable: a linear radial
+    # scale preserves the dipole-like shape without exaggerating numerical
+    # noise or collapsing the surface into a featureless sphere.
     values = np.asarray(intensity, dtype=float)
     azimuth = np.deg2rad(np.linspace(-180.0, 180.0, values.shape[1]))
     polar = np.deg2rad(np.linspace(-90.0, 90.0, values.shape[0]))
@@ -40,16 +39,14 @@ def main() -> None:
     sphere_y = np.cos(polar_grid) * np.sin(azimuth_grid)
     sphere_z = np.sin(polar_grid)
 
-    log_values = np.log10(np.clip(values, 1e-12, None))
-    lower, upper = float(log_values.min()), float(log_values.max())
-    radius = 0.15 + 0.35 * (log_values - lower) / (upper - lower) if upper > lower else np.ones_like(log_values)
+    lower, upper = float(values.min()), float(values.max())
+    normalized = (values - lower) / (upper - lower) if upper > lower else np.ones_like(values)
+    radius = 0.24 + 0.76 * normalized
 
     x_values = sphere_x * radius
     y_values = sphere_y * radius
     z_values = sphere_z * radius
-    colors = cm.viridis(
-        Normalize(vmin=lower, vmax=upper)(log_values)
-    )
+    colors = cm.viridis(Normalize(vmin=lower, vmax=upper)(values))
 
     output = plt.figure(figsize=(10, 8), dpi=320, facecolor="none")
     axes = output.add_subplot(111, projection="3d")
@@ -63,7 +60,7 @@ def main() -> None:
         ccount=x_values.shape[1],
         linewidth=0,
         antialiased=True,
-        shade=True,
+        shade=False,
     )
     axes.set_proj_type("ortho")
     axes.view_init(elev=CAMERA_ELEVATION, azim=CAMERA_AZIMUTH)
