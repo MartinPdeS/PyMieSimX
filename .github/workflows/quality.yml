@@ -43,4 +43,5 @@ jobs:
       - name: Initialize material catalog
         run: python -m PyOptik setup --no-progress
       - name: Browser workflow tests
-        run: python -m pytest tests/browser --config-file=pytest.ini --headless --cov=PyMieSimX --cov-report=term
+        # The full GUI suite enforces the repository-wide coverage threshold.
+        run: python -m pytest tests/browser --config-file=pytest.ini --headless --cov=PyMieSimX --cov-report=term --cov-fail-under=0
