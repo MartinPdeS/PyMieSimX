@@ -493,7 +493,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State({"kind": "field", "section": "detector", "name": ALL}, "id"),
         State("measure-select", "value"),
         State("experiment-job", "data"),
-        prevent_initial_call="initial_duplicate",
+        prevent_initial_call=True,
     )
     def _submit_experiment(
         _run_clicks: int,
@@ -509,6 +509,10 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         measure: str,
         previous_job: dict | None,
     ):
+        # Dynamic page insertion can invoke callbacks without a button click.
+        if not _run_clicks:
+            return no_update, no_update, no_update
+
         LOGGER.debug(
             "Preparing background parameter sweep source=%s scatterer=%s detector=%s measure=%s",
             source_type,
@@ -569,7 +573,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _poll_experiment_job(_n_intervals: int, job_data: dict | None, experiment_runs: int):
         snapshot = experiment_jobs.snapshot((job_data or {}).get("job_id"))
         if snapshot is None:
-            return no_update, no_update, True, no_update
+            return no_update, no_update, True, False
         status = snapshot["status"]
         LOGGER.debug("Polling experiment job_id=%s status=%s", snapshot["job_id"], status)
         if status in {"pending", "running"}:

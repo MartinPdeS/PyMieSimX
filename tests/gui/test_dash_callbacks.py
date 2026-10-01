@@ -2,6 +2,7 @@
 
 from math import isnan
 
+import pytest
 from dash import no_update
 
 from PyMieSimX.gui import callbacks, usage_metrics
@@ -85,6 +86,48 @@ def test_plot_and_csv_callbacks():
     download = export(1, result, "Qsca")
     assert download["filename"] == "pymiesim_Qsca.csv"
     assert "Qsca" in download["content"]
+
+
+@pytest.mark.parametrize("clicks", [None, 0])
+def test_experiment_page_initialization_does_not_submit(monkeypatch, clicks):
+    application = create_dash_app()
+
+    def unexpected_submit(**_kwargs):
+        pytest.fail("Page initialization must not submit an experiment")
+
+    monkeypatch.setattr(callbacks.experiment_jobs, "submit", unexpected_submit)
+    submit = _callback(application, "_submit_experiment")
+    assert submit(
+        clicks,
+        "GaussianSet", ["650", "0", "1e-3", "0.2"],
+        [{"name": name} for name in ("wavelength", "polarization", "optical_power", "numerical_aperture")],
+        "SphereSet", ["500", "1.4", "1.0"],
+        [{"name": name} for name in ("diameter", "material", "medium")],
+        "None", [], [], "Qsca", None,
+    ) == (no_update, no_update, no_update)
+
+
+@pytest.mark.parametrize("job_data", [None, {"job_id": "missing-job"}])
+def test_missing_experiment_job_reenables_run(monkeypatch, job_data):
+    application = create_dash_app()
+    monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: None)
+    poll = _callback(application, "_poll_experiment_job")
+
+    assert poll(1, job_data, 2) == (no_update, no_update, True, False)
+
+
+@pytest.mark.parametrize("status", ["pending", "running", "failed", "cancelled"])
+def test_experiment_polling_button_state(monkeypatch, status):
+    application = create_dash_app()
+    monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: {
+        "job_id": "job", "status": status, "error": "failed" if status == "failed" else None,
+    })
+    poll = _callback(application, "_poll_experiment_job")
+
+    active = status in {"pending", "running"}
+    assert poll(1, {"job_id": "job"}, 2) == (
+        no_update, no_update, not active, no_update if active else False,
+    )
 
 
 def test_single_projection_refreshes_result(monkeypatch):
