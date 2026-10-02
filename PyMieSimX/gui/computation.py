@@ -3,6 +3,7 @@
 
 import logging
 import json
+from base64 import b64decode
 from dataclasses import dataclass
 from math import prod
 from typing import Any, Dict
@@ -733,6 +734,16 @@ def export_result_to_csv(result: dict[str, Any] | None) -> str:
     return frame.to_csv(index=False)
 
 
+def _plotly_array(value: Any) -> np.ndarray:
+    """Read plain arrays and Plotly 6's base64 typed-array payloads."""
+    if isinstance(value, dict) and "bdata" in value:
+        array = np.frombuffer(b64decode(value["bdata"]), dtype=value["dtype"])
+        if "shape" in value:
+            array = array.reshape(tuple(int(size) for size in value["shape"].split(",")))
+        return array
+    return np.asarray(value)
+
+
 def export_single_result_to_csv(result: dict[str, Any] | None) -> str:
     """Serialize a Particle Explorer figure payload to CSV text."""
     if not result or not result.get("figure"):
@@ -743,17 +754,36 @@ def export_single_result_to_csv(result: dict[str, Any] | None) -> str:
     rows: list[dict[str, Any]] = []
     for trace in traces:
         name = trace.get("name", "value")
+        if trace.get("type") == "scatterpolar":
+            theta_values = _plotly_array(trace.get("theta", []))
+            r_values = _plotly_array(trace.get("r", []))
+            rows.extend({"series": name, "theta": theta, "r": radius} for theta, radius in zip(theta_values, r_values))
+            continue
+
         if "z" in trace:
-            z_values = np.asarray(trace["z"])
-            x_values = trace.get("x") or list(range(z_values.shape[1]))
-            y_values = trace.get("y") or list(range(z_values.shape[0]))
+            z_values = _plotly_array(trace["z"])
+            x_values = _plotly_array(trace["x"]) if "x" in trace else np.arange(z_values.shape[1])
+            y_values = _plotly_array(trace["y"]) if "y" in trace else np.arange(z_values.shape[0])
+            if trace.get("type") == "surface":
+                # Surface coordinates may be full grids; z is geometry, while
+                # surfacecolor carries the computed optical field/intensity.
+                values = _plotly_array(trace.get("surfacecolor", trace["z"]))
+                for y_index, x_index in np.ndindex(z_values.shape):
+                    rows.append({
+                        "series": name,
+                        "x": x_values[y_index, x_index] if x_values.ndim == 2 else x_values[x_index],
+                        "y": y_values[y_index, x_index] if y_values.ndim == 2 else y_values[y_index],
+                        "z": z_values[y_index, x_index],
+                        "value": values[y_index, x_index],
+                    })
+                continue
             for y_index, y_value in enumerate(y_values):
                 for x_index, x_value in enumerate(x_values):
                     rows.append({"series": name, "x": x_value, "y": y_value, "value": z_values[y_index, x_index]})
             continue
 
-        y_values = trace.get("y", [])
-        x_values = trace.get("x") or list(range(len(y_values)))
+        y_values = _plotly_array(trace.get("y", []))
+        x_values = _plotly_array(trace["x"]) if "x" in trace else np.arange(len(y_values))
         rows.extend({"series": name, "x": x_value, "value": y_value} for x_value, y_value in zip(x_values, y_values))
 
     return pd.DataFrame(rows).to_csv(index=False) if rows else ""

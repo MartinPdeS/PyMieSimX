@@ -1,7 +1,11 @@
 """Integration tests for registered Dash callback behavior."""
 
 from math import isnan
+from io import StringIO
 
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 import pytest
 from dash import no_update
 
@@ -114,6 +118,44 @@ def test_plot_and_csv_callbacks():
     download = export(1, result, "Qsca")
     assert download["filename"] == "pymiesim_Qsca.csv"
     assert "Qsca" in download["content"]
+
+
+@pytest.mark.parametrize("encoded", [False, True], ids=["plain", "typed-arrays"])
+@pytest.mark.parametrize("kind", ["scatter", "implicit-x", "scatterpolar", "heatmap", "surface"])
+def test_particle_explorer_csv_preserves_coordinates_and_values(kind, encoded):
+    def array(values):
+        return np.array(values, dtype=float) if encoded else values
+
+    if kind in {"scatter", "implicit-x", "scatterpolar"}:
+        x, y = [10, 20, 40], [1, 3, 7]
+        if kind == "scatterpolar":
+            trace = go.Scatterpolar(theta=array(x), r=array(y), name="field")
+            expected = {"series": ["field"] * 3, "theta": x, "r": y}
+        else:
+            trace = go.Scatter(y=array(y), name="field")
+            if kind == "scatter":
+                trace.x = array(x)
+            expected = {"series": ["field"] * 3, "x": x if kind == "scatter" else [0, 1, 2], "value": y}
+    elif kind == "heatmap":
+        trace = go.Heatmap(x=array([10, 20, 40]), y=array([-5, 15]), z=array([[1, 2, 3], [7, 8, 9]]), name="field")
+        expected = {"series": ["field"] * 6, "x": [10, 20, 40] * 2, "y": [-5] * 3 + [15] * 3, "value": [1, 2, 3, 7, 8, 9]}
+    else:
+        trace = go.Surface(
+            x=array([[10, 20, 40], [50, 60, 80]]), y=array([[-5, -4, -3], [15, 16, 17]]),
+            z=array([[1, 2, 3], [7, 8, 9]]), surfacecolor=array([[11, 12, 13], [21, 22, 23]]), name="field",
+        )
+        expected = {
+            "series": ["field"] * 6, "x": [10, 20, 40, 50, 60, 80], "y": [-5, -4, -3, 15, 16, 17],
+            "z": [1, 2, 3, 7, 8, 9], "value": [11, 12, 13, 21, 22, 23],
+        }
+
+    result = {"figure": go.Figure(trace).to_plotly_json()}
+    export = _callback(create_dash_app(), "_export_single_csv")
+    assert export(0, result) is no_update
+    assert export(1, None) is no_update
+    download = export(1, result)
+    assert download["filename"] == "pymiesim_particle_explorer.csv"
+    pd.testing.assert_frame_equal(pd.read_csv(StringIO(download["content"])), pd.DataFrame(expected), check_dtype=False)
 
 
 @pytest.mark.parametrize("selected, expected", [
