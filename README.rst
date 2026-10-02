@@ -7,7 +7,7 @@ configuring optical setups, running parameter sweeps, exploring individual
 particles, and exporting results.
 
 Try the live webapp
-------------------
+----------------------
 
 **Run Mie scattering simulations in your browser—no installation required.**
 
