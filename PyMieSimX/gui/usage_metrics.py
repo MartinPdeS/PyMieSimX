@@ -15,6 +15,7 @@ except Exception:  # pragma: no cover - exercised through fallback behavior.
 LOGGER = logging.getLogger(__name__)
 
 METRICS_BACKEND_ENV_VAR = "PYMIESIMX_USAGE_METRICS_BACKEND"
+SHOW_METRIC_ENV_VAR = "SHOW_METRIC"
 METRICS_DATABASE_URL_ENV_VAR = "PYMIESIMX_USAGE_METRICS_DATABASE_URL"
 DATABASE_URL_ENV_VAR = "DATABASE_URL"
 METRICS_TABLE = "metrics_counters"
@@ -46,6 +47,11 @@ class UsageMetrics:
             "experiment_runs": self.experiment_run_count,
             "single_runs": self.single_run_count,
         }
+
+
+def show_public_metrics() -> bool:
+    """Expose the visit counter only when explicitly enabled for a hosted backend."""
+    return os.getenv(SHOW_METRIC_ENV_VAR, "false").strip().lower() in {"true", "1", "yes", "on"} and _use_postgres_backend()
 
 
 def load_usage_metrics() -> UsageMetrics:

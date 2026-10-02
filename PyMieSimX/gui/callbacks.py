@@ -213,7 +213,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             active["experiment"] += " active"
             return build_page_with_footer(build_experiment_page(default_measure_options, plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
         active["home"] += " active"
-        return build_page_with_footer(build_home_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+        return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
 
     @app.callback(
         Output("admin-home-page-visits", "children"),

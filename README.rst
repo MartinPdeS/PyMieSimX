@@ -11,6 +11,10 @@ Try the live webapp
 
 **Run Mie scattering simulations in your browser—no installation required.**
 
+.. image:: https://img.shields.io/badge/Launch_Webapp-Open_in_browser-2672d6?style=for-the-badge
+   :target: https://pymiesim.onrender.com/
+   :alt: Launch the PyMieSimX webapp in your browser
+
 `Launch the PyMieSimX webapp <https://pymiesim.onrender.com/>`_ to configure
 optical setups, run parameter sweeps, explore individual particles, and download
 your results as CSV files. The hosted service provides direct access to the
@@ -137,10 +141,19 @@ PyMieSimX writes namespaced counters to the shared ``metrics_counters`` table:
 backend is explicitly configured and available. Local installations do not
 persist usage counters.
 
+To show a small **Webapp visits** box in the homepage's top card, set this
+environment variable on the Render service and redeploy::
+
+    SHOW_METRIC=true
+
+The box is hidden by default and requires the PostgreSQL configuration above.
+It shows the total home-page visit count, including repeat visits, rather than
+unique visitors. If the database is unavailable, the box stays hidden.
+
 Administration page
 -------------------
 
-Usage counters are shown only on the hidden, token-protected administration
+Detailed usage counters are shown on the hidden, token-protected administration
 page. Configure a server-side token with::
 
     PYMIESIMX_ADMIN_TOKEN=<a long random value>

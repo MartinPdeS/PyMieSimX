@@ -46,6 +46,17 @@ def test_navigation_and_local_metrics(monkeypatch):
     assert callbacks._counter(float("nan")) == 0
 
 
+def test_home_route_uses_newly_recorded_server_count(monkeypatch):
+    application = create_dash_app()
+    monkeypatch.setattr(usage_metrics, "record_home_page_visit", lambda: usage_metrics.UsageMetrics(home_page_visit_count=4321))
+    displayed = []
+    original = callbacks.build_home_page
+    monkeypatch.setattr(callbacks, "build_home_page", lambda **kwargs: displayed.append(kwargs["home_visits"]) or original(**kwargs))
+    home = _callback(application, "_route_pages")("/", "", 999999, 0, 0, {"theme": "light"}, {})
+    assert home[-1] == 4321
+    assert displayed == [4321]
+
+
 def test_validation_submission_cancellation_and_polling(monkeypatch):
     application = create_dash_app()
     validate = _callback(application, "_validate_fields")

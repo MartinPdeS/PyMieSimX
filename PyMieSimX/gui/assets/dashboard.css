@@ -3865,6 +3865,87 @@ html .single-workspace .representation-card {
         flex-basis: auto;
     }
 }
+.home-page-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.home-hero-copy {
+    flex: 1 1 360px;
+    min-width: 0;
+}
+
+.home-hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-left: auto;
+}
+
+.home-visit-metric {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 9px 16px;
+    border: 1px solid #cddcec;
+    border-radius: 9px;
+    background: #f3f7fc;
+    color: #2f4358;
+}
+
+.home-visit-label {
+    font-size: .72rem;
+    font-weight: 600;
+}
+
+.home-visit-value {
+    font-size: 1.2rem;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.home-support-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    flex: 0 0 auto;
+    margin-left: auto;
+    padding: 10px 17px;
+    border: 1px solid #e8c56b;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #fff8e3, #ffe8a9);
+    color: #704912;
+    font-size: .92rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 3px 9px rgba(151, 104, 23, .10);
+    transition: background 150ms ease, box-shadow 150ms ease;
+}
+
+.home-support-button:hover {
+    background: #ffe49a;
+    color: #58350b;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(151, 104, 23, .18);
+}
+
+.home-support-button:focus-visible {
+    outline: 3px solid #2672d6;
+    outline-offset: 3px;
+}
+
+.home-support-icon {
+    color: #ad6515;
+    font-size: 1.1rem;
+}
+
 .admin-page {
   max-width: 1180px;
   margin: 0 auto;

@@ -1,14 +1,16 @@
 """Home page composition."""
 
 from importlib.metadata import PackageNotFoundError, version
+from math import isfinite
 
 from dash import dcc, html
 import numpy as np
 import plotly.graph_objects as go
 
 from PyMieSimX.gui.components import Card
+from PyMieSimX.gui.usage_metrics import show_public_metrics
 
-def build_home_page():
+def build_home_page(*, home_visits: int | float | None = None):
     """Build the landing page and its workflow cards."""
     return html.Div(
         className="page-content-stack",
@@ -23,10 +25,29 @@ def build_home_page():
             html.Section(
                 className="page-hero home-page-hero",
                 children=[
-                    html.H1("PyMieSim"),
-                    html.P(
-                        "An open-source library for fast and flexible far-field Mie scattering simulations.",
-                        className="hero-text",
+                    html.Div(
+                        [
+                            html.H1("PyMieSim"),
+                            html.P(
+                                "An open-source library for fast and flexible far-field Mie scattering simulations.",
+                                className="hero-text",
+                            ),
+                        ],
+                        className="home-hero-copy",
+                    ),
+                    html.Div(
+                        [
+                            _visit_metric(home_visits),
+                            html.A(
+                                [html.Span("\u2665", className="home-support-icon", **{"aria-hidden": "true"}), "Support Developer"],
+                                id="home-support-developer",
+                                href="https://github.com/sponsors/MartinPdeS",
+                                target="_blank",
+                                rel="noopener noreferrer",
+                                className="home-support-button",
+                            ),
+                        ],
+                        className="home-hero-actions",
                     ),
                 ],
             ),
@@ -57,6 +78,19 @@ def build_home_page():
             ),
         ],
     )
+
+def _visit_metric(home_visits: int | float | None):
+    """Show an available server count without displaying local or failed metrics."""
+    if not show_public_metrics() or home_visits is None or not isfinite(home_visits) or home_visits < 0:
+        return None
+    return html.Div(
+        [
+            html.Span("Webapp visits", className="home-visit-label"),
+            html.Strong(f"{int(home_visits):,}", id="home-public-visit-count", className="home-visit-value"),
+        ],
+        className="home-visit-metric",
+    )
+
 
 def _package_version() -> str:
     try:
