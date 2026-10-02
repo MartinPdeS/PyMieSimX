@@ -690,6 +690,10 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("single-include-incident-field", "value"),
         State("single-run-count", "data"),
         prevent_initial_call=True,
+        running=[
+            (Output("single-graph-loading", "display"), "show", "auto"),
+            (Output("run-single-button", "disabled"), True, False),
+        ],
     )
     def _run_single(
         _run_clicks: int,
@@ -731,6 +735,13 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         except Exception:
             LOGGER.exception("Failed to record PyMieSimX particle-explorer metric.")
         return execution.result, execution.run_count
+
+    @app.callback(
+        Output("result-graph-loading", "display"),
+        Input("run-experiment-button", "disabled"),
+    )
+    def _show_experiment_computing(run_disabled: bool):
+        return "show" if run_disabled else "auto"
 
     @app.callback(
         Output("single-representation", "options"),

@@ -336,7 +336,8 @@ def build_single_figure(
         colorscale = PYMIESIM_BLUE_BLACK_RED
         x = np.asarray(nearfields.u.to(ureg.nanometer).magnitude, dtype=float)
         y = np.asarray(nearfields.v.to(ureg.nanometer).magnitude, dtype=float)
-        heatmap_kwargs = {"x": x, "y": y, "z": values, "colorscale": colorscale, "colorbar": {"title": "V/m"}}
+        # PyMieSim indexes fields as (u, v); Plotly indexes z as (y, x).
+        heatmap_kwargs = {"x": x, "y": y, "z": values.T, "colorscale": colorscale, "colorbar": {"title": "V/m"}}
         if not is_absolute:
             maximum = float(np.max(np.abs(values)))
             maximum = maximum if maximum > 0 else 1.0

@@ -335,7 +335,8 @@ def test_single_nearfield_supports_new_scatterer_types(monkeypatch, scatterer_ty
             assert component == "Ex"
             assert type == "total"
             assert sampling == 24
-            return {component: np.ones((sampling, sampling), dtype=complex)}
+            # An asymmetric field catches accidental swaps of the plane axes.
+            return {component: np.arange(sampling * sampling).reshape(sampling, sampling).astype(complex)}
 
     class FakeSetup:
         def get_representation(self, representation):
@@ -355,4 +356,5 @@ def test_single_nearfield_supports_new_scatterer_types(monkeypatch, scatterer_ty
 
     assert len(figure.data) == 1
     assert len(figure.data[0].z) == 24
+    np.testing.assert_array_equal(figure.data[0].z, np.arange(24 * 24).reshape(24, 24).T)
     assert summary["Scatterer"] == scatterer_type

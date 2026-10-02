@@ -247,6 +247,12 @@ def test_single_computation_waits_for_run(monkeypatch):
     assert definition["inputs"] == [{"id": "run-single-button", "property": "n_clicks"}]
     assert {"id": "single-projection", "property": "value"} in definition["state"]
     assert {"id": "single-representation", "property": "value"} in definition["state"]
+    registration = next(
+        entry for entry in application._callback_list
+        if entry["output"] == "..single-result.data...single-run-count.data.."
+    )
+    assert registration["running"]["running"]["single-graph-loading.display"] == "show"
+    assert registration["running"]["runningOff"]["single-graph-loading.display"] == "auto"
 
     for clicks in (None, 0):
         assert run_single(
@@ -275,3 +281,10 @@ def test_single_computation_waits_for_run(monkeypatch):
     assert captured["representation"] == "spf"
     assert result == {"figure": {}, "summary": {}}
     assert run_count == 2
+
+
+def test_sweep_computing_message_covers_background_job():
+    application = create_dash_app()
+    show_computing = _callback(application, "_show_experiment_computing")
+    assert show_computing(True) == "show"
+    assert show_computing(False) == "auto"
