@@ -21,9 +21,9 @@ jobs:
       # conda run. Invoke the installed environment's interpreter directly.
       test_command: >-
         if [ -f '${test_prefix}/python.exe' ]; then
-          '${test_prefix}/python.exe' '${GITHUB_WORKSPACE}/tools/verify_conda_artifact.py';
+        '${test_prefix}/python.exe' '${GITHUB_WORKSPACE}/tools/verify_conda_artifact.py';
         else
-          '${test_prefix}/bin/python' '${GITHUB_WORKSPACE}/tools/verify_conda_artifact.py';
+        '${test_prefix}/bin/python' '${GITHUB_WORKSPACE}/tools/verify_conda_artifact.py';
         fi
     secrets:
       ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
