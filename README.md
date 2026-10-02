@@ -18,7 +18,7 @@
 | PyMieSimX/gui/pages/citation.py                        |        7 |        1 |        0 |        0 |     85.71% |        24 |
 | PyMieSimX/gui/pages/documentation.py                   |        8 |        3 |        0 |        0 |     62.50% |10, 65, 69 |
 | PyMieSimX/gui/pages/field\_syntax.py                   |       15 |        8 |        0 |        0 |     46.67% |10, 50-51, 61-62, 69-70, 77 |
-| PyMieSimX/gui/pages/home.py                            |       29 |        2 |        0 |        0 |     93.10% |     64-65 |
+| PyMieSimX/gui/pages/home.py                            |       35 |        2 |        2 |        0 |     94.59% |     98-99 |
 | PyMieSimX/gui/pages/install\_local.py                  |       12 |        3 |        0 |        0 |     75.00% |16, 32, 37 |
 | PyMieSimX/gui/pages/sellmeier.py                       |       18 |       11 |        2 |        0 |     35.00% |11-43, 95, 122, 149 |
 | PyMieSimX/gui/pages/settings.py                        |       21 |       11 |        0 |        0 |     47.62% |12-15, 40-41, 45, 55, 78, 82, 86 |
@@ -28,8 +28,8 @@
 | PyMieSimX/gui/parsing.py                               |      113 |       33 |       68 |       21 |     64.64% |23, 26-28, 31, 36, 45, 50, 58, 69, 72-74, 84, 87, 93-95, 105, 118-123, 131, 134, 137, 145, 148, 153, 159, 183-186 |
 | PyMieSimX/gui/plotting.py                              |        2 |        2 |        0 |        0 |      0.00% |      5-19 |
 | PyMieSimX/gui/single\_service.py                       |        2 |        2 |        0 |        0 |      0.00% |      5-14 |
-| PyMieSimX/gui/usage\_metrics.py                        |       83 |       36 |       14 |        3 |     53.61% |36, 54-57, 78-85, 96-97, 106-109, 113-114, 126-138, 142-164 |
-| **TOTAL**                                              | **1790** |  **627** |  **476** |   **81** | **61.87%** |           |
+| PyMieSimX/gui/usage\_metrics.py                        |       86 |       36 |       14 |        3 |     55.00% |37, 60-63, 84-91, 102-103, 112-115, 119-120, 132-144, 148-170 |
+| **TOTAL**                                              | **1799** |  **627** |  **478** |   **81** | **62.06%** |           |
 
 8 files skipped due to complete coverage.
 
