@@ -6,6 +6,16 @@ PyMieSimX is the standalone graphical interface for `PyMieSim
 configuring optical setups, running parameter sweeps, exploring individual
 particles, and exporting results.
 
+Try the live webapp
+------------------
+
+**Run Mie scattering simulations in your browser—no installation required.**
+
+`Launch the PyMieSimX webapp <https://pymiesim.onrender.com/>`_ to configure
+optical setups, run parameter sweeps, explore individual particles, and download
+your results as CSV files. The hosted service provides direct access to the
+graphical interface; local installation is also available below.
+
 Source-model note
 -----------------
 

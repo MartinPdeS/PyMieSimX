@@ -7,7 +7,8 @@ source:
 
 build:
   number: 0
-  noarch: python
+  entry_points:
+    - pymiesimx = PyMieSimX.__main__:main
   script: "{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
 
 requirements:
@@ -46,6 +47,7 @@ test:
     - pytest >=8.0
     - pytest-cov >=5.0
   commands:
+    - pymiesimx --help
     - python -m pytest --config-file=./pytest.ini
   source_files:
     - tests
