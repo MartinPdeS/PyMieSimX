@@ -2952,6 +2952,23 @@ button.material-name-select:focus-visible {
     color: var(--error);
 }
 
+.status-banner.warning {
+    background: rgba(210, 145, 20, 0.14);
+    color: var(--ink);
+}
+
+.experiment-run-feedback {
+    display: grid;
+    gap: 8px;
+}
+
+.experiment-run-feedback .status-banner {
+    position: static;
+    margin: 0;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

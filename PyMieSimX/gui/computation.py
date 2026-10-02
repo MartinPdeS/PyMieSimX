@@ -459,6 +459,12 @@ def infer_variable_fields(
     return variable_fields
 
 
+def normalize_measures(measure: str | list[str] | None) -> list[str]:
+    """Accept legacy single-measure input and preserve unique selection order."""
+    values = [measure] if isinstance(measure, str) else (measure or [])
+    return list(dict.fromkeys(values))
+
+
 def run_experiment(
     *,
     source_type: str,
@@ -467,7 +473,7 @@ def run_experiment(
     scatterer_values: Dict[str, Any],
     detector_type: str,
     detector_values: Dict[str, Any],
-    measure: str,
+    measure: str | list[str],
 ) -> ExperimentResult:
     """Execute the selected experiment and serialize the result for Dash."""
     LOGGER.debug(
@@ -505,7 +511,8 @@ def run_experiment(
 
     LOGGER.debug("Experiment setup instantiated: %r", setup)
 
-    dataframe = setup.get(measure, drop_unique_level=True)
+    measures = normalize_measures(measure)
+    dataframe = setup.get(*measures, drop_unique_level=True)
     LOGGER.debug("Experiment returned dataframe with shape %s", getattr(dataframe, "shape", None))
     if hasattr(dataframe, "as_dataframe"):
         # Native LabeledArray results: convert and drop the "section:" column prefixes
@@ -529,10 +536,11 @@ def run_experiment(
     for column in frame.columns:
         frame[column] = frame[column].map(serialize_value)
 
-    parameter_columns = [column for column in frame.columns if column != measure]
+    parameter_columns = [column for column in frame.columns if column not in measures]
 
     result: ExperimentResult = {
-        "measure": measure,
+        "measure": measures[0],
+        "measures": measures,
         "units": units,
         "columns": [str(column) for column in frame.columns],
         "parameter_columns": parameter_columns,
@@ -591,6 +599,7 @@ def estimate_result_size(
     scatterer_values: Dict[str, Any],
     detector_type: str,
     detector_values: Dict[str, Any],
+    measure: str | list[str] | None = None,
 ) -> ResultSizeEstimate:
     """Estimate serialized result size before starting a computation."""
     row_count = estimate_sweep_size(
@@ -601,7 +610,7 @@ def estimate_result_size(
         detector_type=detector_type,
         detector_values=detector_values,
     )
-    column_count = 1 + sum(
+    column_count = max(1, len(normalize_measures(measure))) + sum(
         len(field_groups.get(selected_type, ()))
         for field_groups, selected_type in (
             ((SOURCE_FIELDS, source_type), (SCATTERER_FIELDS, scatterer_type), (DETECTOR_FIELDS, detector_type))
@@ -627,7 +636,7 @@ def validate_experiment_inputs(
     scatterer_values: Dict[str, Any],
     detector_type: str,
     detector_values: Dict[str, Any],
-    measure: str,
+    measure: str | list[str] | None,
 ) -> list[ValidationIssue]:
     """Validate all experiment fields and return actionable user-facing issues."""
     issues: list[ValidationIssue] = []
@@ -659,10 +668,14 @@ def validate_experiment_inputs(
             except (TypeError, ValueError, KeyError) as error:
                 issues.append(ValidationIssue(field.name, str(error)))
 
+    measures = normalize_measures(measure)
+    if not measures:
+        issues.append(ValidationIssue("measure", "Select at least one measure."))
     if scatterer_type in SCATTERER_TYPES and detector_type in DETECTOR_TYPES:
         valid_measures = available_measures(scatterer_type, detector_type)
-        if measure not in valid_measures:
-            issues.append(ValidationIssue("measure", f"'{measure}' is not available for this configuration."))
+        for selected_measure in measures:
+            if selected_measure not in valid_measures:
+                issues.append(ValidationIssue("measure", f"'{selected_measure}' is not available for this configuration."))
 
     if not issues:
         sweep_size = estimate_sweep_size(
@@ -688,6 +701,7 @@ def validate_experiment_inputs(
                 scatterer_values=scatterer_values,
                 detector_type=detector_type,
                 detector_values=detector_values,
+                measure=measures,
             )
             if result_estimate.estimated_bytes > MAX_RESULT_PAYLOAD_BYTES:
                 issues.append(
@@ -769,11 +783,17 @@ def build_figure(result: dict[str, Any] | None, x_axis: str | None, plot_setting
         apply_plot_settings(figure, plot_settings, theme)
         return figure
 
+    measures = result.get("measures") or [result["measure"]]
+    if len(measures) > 1:
+        return _build_multi_measure_figure(result, x_axis, plot_settings, theme, projection)
+
     frame = pd.DataFrame(result["rows"])
     measure = result["measure"]
     parameter_columns = result["parameter_columns"]
     units = result.get("units", {})
     LOGGER.debug("Figure frame columns=%s row_count=%d", list(frame.columns), len(frame))
+    extra_axes = []
+    use_polar = False
 
     if not parameter_columns:
         resolved_x_axis = "index"
@@ -805,7 +825,8 @@ def build_figure(result: dict[str, Any] | None, x_axis: str | None, plot_setting
             plot_kwargs["color"] = series_column
             plot_kwargs["line_group"] = series_column
 
-        if projection == "polar" and _is_angular_unit(xaxis_unit):
+        use_polar = (projection == "polar" or (plot_settings or {}).get("coordinate_system") == "polar") and _is_angular_unit(xaxis_unit)
+        if use_polar:
             figure = go.Figure()
             groups = frame.groupby(series_column, sort=False) if extra_axes else [(measure, frame)]
             for series_name, group in groups:
@@ -835,8 +856,8 @@ def build_figure(result: dict[str, Any] | None, x_axis: str | None, plot_setting
         plot_bgcolor="white",
         margin={"l": 40, "r": 20, "t": 50, "b": 40},
         title=f"{measure} response",
-        xaxis_title=None if projection == "polar" and _is_angular_unit(xaxis_unit) else xaxis_title,
-        yaxis_title=None if projection == "polar" and _is_angular_unit(xaxis_unit) else yaxis_title,
+        xaxis_title=None if use_polar else xaxis_title,
+        yaxis_title=None if use_polar else yaxis_title,
         legend_title_text="",
         meta={
             "polar_axis_unit": xaxis_unit,
@@ -845,6 +866,61 @@ def build_figure(result: dict[str, Any] | None, x_axis: str | None, plot_setting
     )
     apply_plot_settings(figure, plot_settings, theme)
 
+    return figure
+
+
+def _build_multi_measure_figure(result, x_axis, plot_settings, theme, projection) -> go.Figure:
+    """Overlay comparable measures and give different units their own axes."""
+    from plotly.subplots import make_subplots
+
+    measures = result["measures"]
+    units = result.get("units", {})
+    groups: dict[str, list[str]] = {}
+    figures = {}
+    for measure in measures:
+        groups.setdefault(units.get(measure, ""), []).append(measure)
+        figures[measure] = build_figure(
+            {**result, "measure": measure, "measures": [measure]},
+            x_axis, plot_settings, theme, projection,
+        )
+    first = figures[measures[0]]
+    is_polar = bool(first.data and first.data[0].type == "scatterpolar")
+    row_count = len(groups)
+    figure = make_subplots(
+        rows=row_count, cols=1, shared_xaxes=not is_polar,
+        specs=[[{"type": "polar" if is_polar else "xy"}] for _ in groups],
+        subplot_titles=[", ".join(names) for names in groups.values()],
+        vertical_spacing=min(0.08, 0.5 / row_count),
+    )
+    for row, (unit, names) in enumerate(groups.items(), start=1):
+        for measure in names:
+            color = px.colors.qualitative.Plotly[measures.index(measure) % len(px.colors.qualitative.Plotly)]
+            for series_index, trace in enumerate(figures[measure].data):
+                trace.name = measure if not trace.name or trace.name == measure else f"{measure} | {trace.name}"
+                trace.legendgroup = measure
+                trace.showlegend = True
+                if getattr(trace, "line", None) is not None:
+                    trace.line.color = color
+                    if "dash" in trace.line._valid_props:
+                        trace.line.dash = ("solid", "dash", "dot", "dashdot", "longdash", "longdashdot")[series_index % 6]
+                if getattr(trace, "marker", None) is not None:
+                    trace.marker.color = color
+                figure.add_trace(trace, row=row, col=1)
+        if is_polar:
+            key = "polar" if row == 1 else f"polar{row}"
+            figure.update_layout({key: figures[names[0]].layout.polar.to_plotly_json()})
+        else:
+            display_unit = {"dimensionless": "", "meter ** 2": "m²", "watt": "W"}.get(unit, unit)
+            title = f"Value [{display_unit}]" if display_unit else "Value"
+            figure.update_yaxes(title_text=title, row=row, col=1)
+    figure.update_layout(meta={**(first.layout.meta or {}), "measures": measures}, barmode="group")
+    apply_plot_settings(figure, plot_settings, theme, polar_allowed=False)
+    settings = {**DEFAULT_PLOT_SETTINGS, **(plot_settings or {})}
+    if not is_polar:
+        figure.update_xaxes(showgrid=bool(settings["show_grid"]), type=settings["x_scale"])
+        figure.update_yaxes(showgrid=bool(settings["show_grid"]), type="log" if settings["log_y"] else "linear")
+        figure.update_xaxes(title_text=first.layout.xaxis.title.text, row=row_count, col=1)
+    figure.update_layout(height=max(int(settings["graph_height"]), 300 * row_count + 125))
     return figure
 
 
@@ -1010,7 +1086,7 @@ def build_summary(result: dict[str, Any] | None) -> list[dict[str, str]]:
     LOGGER.debug("Building summary cards for measure=%s", result["measure"])
 
     return [
-        {"label": "Measure", "value": result["measure"]},
+        {"label": "Measures", "value": ", ".join(result.get("measures") or [result["measure"]])},
         {"label": "Rows", "value": str(result["row_count"])},
         {"label": "Axes", "value": ", ".join(result["parameter_columns"]) or "none"},
     ]

@@ -18,6 +18,20 @@ def _callback(application, name):
     raise AssertionError(f"callback {name!r} is not registered")
 
 
+def _experiment_args(wavelength="650", diameter="500", material="1.4"):
+    return (
+        "GaussianSet", [wavelength, "0", "1e-3", "0.2"],
+        [{"name": name} for name in ("wavelength", "polarization", "optical_power", "numerical_aperture")],
+        "SphereSet", [diameter, material, "1.0"],
+        [{"name": name} for name in ("diameter", "material", "medium")],
+        "None", [], [], "Qsca",
+    )
+
+
+def _message(banner):
+    return banner.children[1].children
+
+
 def test_navigation_and_local_metrics(monkeypatch):
     application = create_dash_app()
     monkeypatch.setattr(usage_metrics, "record_home_page_visit", lambda: usage_metrics.UsageMetrics())
@@ -47,7 +61,7 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     monkeypatch.setattr(callbacks.experiment_jobs, "cancel", lambda job_id: cancelled.append(job_id) or True)
     monkeypatch.setattr(callbacks.experiment_jobs, "submit", lambda **_kwargs: "new-job")
     submit = _callback(application, "_submit_experiment")
-    job, polling_disabled, run_disabled = submit(
+    job, polling_disabled, run_disabled, status = submit(
         1,
         "GaussianSet", ["650", "0", "1e-3", "0.2"],
         [{"name": name} for name in ("wavelength", "polarization", "optical_power", "numerical_aperture")],
@@ -59,6 +73,7 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     assert cancelled == ["old-job"]
     assert polling_disabled is False
     assert run_disabled is True
+    assert _message(status).startswith("Queued.")
 
     result = {"rows": [{"Qsca": 1.0}], "columns": ["Qsca"], "parameter_columns": [], "measure": "Qsca", "units": {}, "row_count": 1}
     monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: {
@@ -66,11 +81,13 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
         "submitted_at": "now", "started_at": "now", "finished_at": "now",
     })
     poll = _callback(application, "_poll_experiment_job")
-    completed, count, disabled, run_disabled = poll(1, job, 2)
+    completed, count, disabled, run_disabled, status = poll(1, job, 2)
     assert completed == result
     assert count == 3
     assert disabled is True
     assert run_disabled is False
+    assert _message(status) == "Completed. 1 result rows."
+    assert status.role == "status"
 
 
 def test_plot_and_csv_callbacks():
@@ -86,6 +103,51 @@ def test_plot_and_csv_callbacks():
     download = export(1, result, "Qsca")
     assert download["filename"] == "pymiesim_Qsca.csv"
     assert "Qsca" in download["content"]
+
+
+@pytest.mark.parametrize("selected, expected", [
+    ("Qsca", ["Qsca"]),
+    (["Qsca", "coupling", "Qext"], ["Qsca", "Qext"]),
+    (["coupling"], ["Qsca"]),
+    ([], []),
+])
+def test_measure_options_preserve_supported_selections(selected, expected):
+    update = _callback(create_dash_app(), "_update_measure_options")
+    options, value, alert = update("SphereSet", "None", selected)
+    assert value == expected
+    assert "coupling" not in {option["value"] for option in options}
+    assert alert == {}
+    _, value, alert = update("SphereSet", "PhotodiodeSet", ["Qsca", "coupling"])
+    assert value == ["Qsca", "coupling"]
+    assert alert == {"display": "none"}
+
+
+def test_multiple_measure_submission(monkeypatch):
+    application = create_dash_app()
+    captured = {}
+
+    def submit_job(**kwargs):
+        captured.update(kwargs)
+        return "multi-job"
+
+    monkeypatch.setattr(callbacks.experiment_jobs, "submit", submit_job)
+    args = (*_experiment_args(diameter="100,200")[:-1], ["Qsca", "Qabs", "Qext"])
+    response = _callback(application, "_submit_experiment")(1, *args, None)
+    assert response[:3] == ({"job_id": "multi-job"}, False, True)
+    assert captured["measure"] == ["Qsca", "Qabs", "Qext"]
+
+
+def test_export_filename_uses_computed_measures_after_selection_changes():
+    application = create_dash_app()
+    result = {
+        "measure": "Qsca", "measures": ["Qsca", "Qext"],
+        "rows": [{"diameter": 100, "Qsca": 1, "Qext": 2}],
+        "columns": ["diameter", "Qsca", "Qext"], "parameter_columns": ["diameter"],
+        "units": {}, "row_count": 1,
+    }
+    download = _callback(application, "_export_csv")(1, result, ["Qabs"])
+    assert download["filename"] == "pymiesim_Qsca_Qext.csv"
+    assert "diameter,Qsca,Qext" in download["content"]
 
 
 @pytest.mark.parametrize("clicks", [None, 0])
@@ -104,7 +166,7 @@ def test_experiment_page_initialization_does_not_submit(monkeypatch, clicks):
         "SphereSet", ["500", "1.4", "1.0"],
         [{"name": name} for name in ("diameter", "material", "medium")],
         "None", [], [], "Qsca", None,
-    ) == (no_update, no_update, no_update)
+    ) == (no_update, no_update, no_update, no_update)
 
 
 @pytest.mark.parametrize("job_data", [None, {"job_id": "missing-job"}])
@@ -113,7 +175,13 @@ def test_missing_experiment_job_reenables_run(monkeypatch, job_data):
     monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: None)
     poll = _callback(application, "_poll_experiment_job")
 
-    assert poll(1, job_data, 2) == (no_update, no_update, True, False)
+    response = poll(1, job_data, 2)
+    assert response[:4] == (no_update, no_update, True, False)
+    if job_data:
+        assert "Run interrupted" in _message(response[4])
+        assert response[4].role == "alert"
+    else:
+        assert response[4] is no_update
 
 
 @pytest.mark.parametrize("status", ["pending", "running", "failed", "cancelled"])
@@ -125,12 +193,43 @@ def test_experiment_polling_button_state(monkeypatch, status):
     poll = _callback(application, "_poll_experiment_job")
 
     active = status in {"pending", "running"}
-    assert poll(1, {"job_id": "job"}, 2) == (
-        no_update, no_update, not active, no_update if active else False,
-    )
+    response = poll(1, {"job_id": "job"}, 2)
+    assert response[:4] == (no_update, no_update, not active, active)
+    expected = {"pending": "Queued.", "running": "Running.", "failed": "Run failed: failed", "cancelled": "Run cancelled."}
+    assert _message(response[4]).startswith(expected[status])
+    assert response[4].role == ("alert" if status == "failed" else "status")
 
 
-def test_single_projection_refreshes_result(monkeypatch):
+def test_rejected_experiment_shows_validation_error(monkeypatch):
+    application = create_dash_app()
+
+    def unexpected_submit(**_kwargs):
+        pytest.fail("Invalid input must not start a job")
+
+    monkeypatch.setattr(callbacks.experiment_jobs, "submit", unexpected_submit)
+    submit = _callback(application, "_submit_experiment")
+    response = submit(1, *_experiment_args(wavelength="-1"), None)
+    assert response[:3] == (None, True, False)
+    assert "Cannot run: wavelength:" in _message(response[3])
+    assert response[3].role == "alert"
+
+
+def test_submission_failure_is_visible_and_recoverable(monkeypatch):
+    application = create_dash_app()
+
+    def fail_submit(**_kwargs):
+        raise RuntimeError("Worker unavailable")
+
+    monkeypatch.setattr(callbacks.experiment_jobs, "submit", fail_submit)
+    submit = _callback(application, "_submit_experiment")
+    response = submit(1, *_experiment_args(), None)
+    assert response[:3] == (None, True, False)
+    assert "Worker unavailable" in _message(response[3])
+    assert "retry" in _message(response[3])
+    assert response[3].role == "alert"
+
+
+def test_single_computation_waits_for_run(monkeypatch):
     application = create_dash_app()
     captured = {}
 
@@ -139,7 +238,23 @@ def test_single_projection_refreshes_result(monkeypatch):
         return CallbackExecution({"figure": {}, "summary": {}}, 2, "done", "success")
 
     monkeypatch.setattr(callbacks, "execute_single_callback", execute)
+    monkeypatch.setattr(usage_metrics, "record_single_run", lambda: None)
     run_single = _callback(application, "_run_single")
+    definition = next(
+        definition for definition in application.callback_map.values()
+        if getattr(definition["callback"], "__wrapped__", None) is run_single
+    )
+    assert definition["inputs"] == [{"id": "run-single-button", "property": "n_clicks"}]
+    assert {"id": "single-projection", "property": "value"} in definition["state"]
+    assert {"id": "single-representation", "property": "value"} in definition["state"]
+
+    for clicks in (None, 0):
+        assert run_single(
+            clicks, "3d_radial", "Gaussian", [], [], "Sphere", [], [],
+            "spf", 120, [], [], 1,
+        ) == (no_update, no_update)
+    assert captured == {}
+
     result, run_count = run_single(
         1,
         "3d_radial",
@@ -157,5 +272,6 @@ def test_single_projection_refreshes_result(monkeypatch):
     )
 
     assert captured["projection"] == "3d_radial"
+    assert captured["representation"] == "spf"
     assert result == {"figure": {}, "summary": {}}
     assert run_count == 2

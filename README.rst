@@ -82,14 +82,30 @@ The computational API can be used without constructing the Dash application::
 ``PyMieSimX.create_dash_app`` and ``PyMieSimX.OpticalSetupGUI`` remain
 available for applications that need the graphical interface.
 
+Multiple measures
+-----------------
+
+The Parameter Sweep Measures selector accepts several quantities in one run.
+For example, select ``Qsca``, ``Qabs``, and ``Qext`` to compare scattering,
+absorption, and extinction efficiencies. Measures with the same units share a
+plot; different units use separate panels with a shared X axis. CSV exports
+contain a column for each computed measure.
+
+The Python API accepts either a single name or a list, for example
+``run_experiment(..., measure=["Qsca", "Qabs", "Qext"])``. Results include
+``measures`` with every computed name; ``measure`` retains the first name for
+compatibility with existing single-measure callers. Size validation accounts
+for the additional result columns.
+
 Background calculations and limits
 -----------------------------------
 
 Parameter sweeps are submitted to a bounded background worker and reported to
-the dashboard through a polling status indicator. Results are guarded by both
-an in-memory dataframe limit and a serialized Dash-payload limit. Large-result
-warnings are logged before execution; oversized results are rejected with an
-actionable message asking you to reduce the sweep.
+the dashboard with visible queued, running, completed, and error messages beside
+Run. The completed-run card shows the number of result rows. Oversized sweeps are
+rejected with guidance when you click Run. Results are guarded by both an
+in-memory dataframe limit and a serialized Dash-payload limit, with estimated
+size validation before execution and actual size checks after computation.
 
 Run the command-line launcher with ``--debug`` to enable detailed logs. Log
 messages use the format ``timestamp | level | logger | message`` and include

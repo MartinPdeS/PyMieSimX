@@ -1,7 +1,7 @@
 """Typed data contracts shared by the computation and Dash layers."""
 
 from dataclasses import dataclass
-from typing import Any, Literal, Mapping, TypedDict
+from typing import Any, Literal, Mapping, NotRequired, TypedDict
 
 
 FieldValues = Mapping[str, Any]
@@ -16,6 +16,7 @@ class ExperimentResult(TypedDict):
     columns: list[str]
     parameter_columns: list[str]
     measure: str
+    measures: NotRequired[list[str]]
     units: dict[str, str]
     row_count: int
 
@@ -49,7 +50,7 @@ class ExperimentRequest:
     scatterer_values: FieldValues
     detector_type: str
     detector_values: FieldValues
-    measure: str
+    measure: str | list[str]
 
     def as_kwargs(self) -> dict[str, Any]:
         """Return keyword arguments accepted by the compatibility API."""

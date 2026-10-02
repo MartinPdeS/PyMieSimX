@@ -14,7 +14,7 @@ from PyMieSimX.gui.models import ExperimentResult, MessageLevel, SingleResult
 from PyMieSimX.gui.services import ExperimentValidationError, build_single_figure, run_experiment
 
 
-_STATUS_ICONS = {"idle": "\u25cb", "success": "\u2713", "error": "\u26a0"}
+_STATUS_ICONS = {"idle": "\u25cb", "success": "\u2713", "warning": "\u26a0", "error": "\u26a0"}
 
 
 def status_banner(level: str, message: str):
@@ -65,7 +65,7 @@ def execute_experiment_callback(
     detector_type: str,
     detector_values: list[str],
     detector_ids: list[dict[str, str]],
-    measure: str,
+    measure: str | list[str],
     run_count: int | None,
 ) -> CallbackExecution:
     """Execute a parameter sweep and convert errors into UI-ready state."""

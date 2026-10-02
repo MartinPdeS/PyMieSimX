@@ -3,6 +3,7 @@
 
 from dash import dcc, html
 
+from PyMieSimX.gui.callback_helpers import status_banner
 from PyMieSimX.gui.layout import PLOT_CONFIG, _plot_options_card, _x_axis_card, build_plot_options_sidebar, build_tabbed_sidebar
 
 from .sections import build_detector_section, build_scatterer_section, build_source_section
@@ -42,6 +43,11 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
                                         className="toolbar-button toolbar-button-secondary",
                                     ),
                                 ],
+                            ),
+                            html.Div(
+                                id="experiment-run-status",
+                                className="experiment-run-feedback",
+                                children=status_banner("idle", "Ready. Click Run to start a sweep."),
                             ),
                             html.Section(className="panel graph-panel", children=[dcc.Loading(id="result-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=dcc.Graph(id="result-graph", config=PLOT_CONFIG))]),
                         ],

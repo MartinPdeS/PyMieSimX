@@ -23,8 +23,10 @@ from PyMieSimX.gui.callback_helpers import (
     execute_single_callback,
     merge_local_plot_values as _merge_local_plot_values,
     pair_ids_with_values as _pair_ids_with_values,
+    status_banner,
 )
 from PyMieSimX.gui.jobs import experiment_jobs
+from PyMieSimX.gui.validation import normalize_measures
 from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.admin import build_admin_page, collect_admin_dashboard_data, dashboard_values, is_admin_access_granted
 from PyMieSimX.gui.services import (
@@ -417,7 +419,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("detector-type", "value"),
         State("measure-select", "value"),
     )
-    def _update_measure_options(scatterer_type: str, detector_type: str, current_measure: str | None):
+    def _update_measure_options(scatterer_type: str, detector_type: str, current_measure: str | list[str] | None):
         LOGGER.debug(
             "Updating measure options for scatterer=%s detector=%s current=%s",
             scatterer_type,
@@ -426,7 +428,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         )
         measures = available_measures(scatterer_type, detector_type)
         options = [{"label": measure, "value": measure} for measure in measures]
-        value = current_measure if current_measure in measures else measures[0]
+        value = [name for name in normalize_measures(current_measure) if name in measures]
+        if not value and current_measure != []:
+            value = measures[:1]
         alert_style = {} if detector_type == "None" else {"display": "none"}
         return options, value, alert_style
 
@@ -481,6 +485,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("experiment-job", "data"),
         Output("experiment-job-poll", "disabled", allow_duplicate=True),
         Output("run-experiment-button", "disabled", allow_duplicate=True),
+        Output("experiment-run-status", "children", allow_duplicate=True),
         Input("run-experiment-button", "n_clicks"),
         State("source-type", "value"),
         State({"kind": "field", "section": "source", "name": ALL}, "value"),
@@ -506,12 +511,12 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         detector_type: str,
         detector_values: list[str],
         detector_ids: list[dict[str, str]],
-        measure: str,
+        measure: str | list[str],
         previous_job: dict | None,
     ):
         # Dynamic page insertion can invoke callbacks without a button click.
         if not _run_clicks:
-            return no_update, no_update, no_update
+            return no_update, no_update, no_update, no_update
 
         LOGGER.debug(
             "Preparing background parameter sweep source=%s scatterer=%s detector=%s measure=%s",
@@ -534,9 +539,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             measure=measure,
         )
         if issues:
-            message = " ".join(issue.message for issue in issues)
+            message = " ".join(f"{issue.field}: {issue.message}" for issue in issues)
             LOGGER.info("Experiment submission rejected: %s", message)
-            return None, True, False
+            return None, True, False, status_banner("error", f"Cannot run: {message}")
 
         if previous_job:
             experiment_jobs.cancel(previous_job.get("job_id"))
@@ -547,24 +552,30 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             scatterer_values=scatterer_mapping,
             detector_type=detector_type,
             detector_values=detector_mapping,
-        )
-        job_id = experiment_jobs.submit(
-            source_type=source_type,
-            source_values=source_mapping,
-            scatterer_type=scatterer_type,
-            scatterer_values=scatterer_mapping,
-            detector_type=detector_type,
-            detector_values=detector_mapping,
             measure=measure,
         )
+        try:
+            job_id = experiment_jobs.submit(
+                source_type=source_type,
+                source_values=source_mapping,
+                scatterer_type=scatterer_type,
+                scatterer_values=scatterer_mapping,
+                detector_type=detector_type,
+                detector_values=detector_mapping,
+                measure=measure,
+            )
+        except Exception as error:  # noqa: BLE001 - submission failures must reach the user
+            LOGGER.exception("Failed to queue experiment")
+            return None, True, False, status_banner("error", f"Could not start the sweep: {error}. Click Run to retry.")
         LOGGER.info("Experiment queued job_id=%s rows_estimate=%d bytes_estimate=%d", job_id, estimate.rows, estimate.estimated_bytes)
-        return {"job_id": job_id}, False, True
+        return {"job_id": job_id}, False, True, status_banner("idle", "Queued. Waiting for a computation worker…")
 
     @app.callback(
         Output("experiment-result", "data"),
         Output("experiment-run-count", "data"),
         Output("experiment-job-poll", "disabled"),
         Output("run-experiment-button", "disabled"),
+        Output("experiment-run-status", "children"),
         Input("experiment-job-poll", "n_intervals"),
         State("experiment-job", "data"),
         State("experiment-run-count", "data"),
@@ -573,20 +584,24 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _poll_experiment_job(_n_intervals: int, job_data: dict | None, experiment_runs: int):
         snapshot = experiment_jobs.snapshot((job_data or {}).get("job_id"))
         if snapshot is None:
-            return no_update, no_update, True, False
+            message = status_banner("error", "Run interrupted: the background job is no longer available. Click Run to retry.") if job_data else no_update
+            return no_update, no_update, True, False, message
         status = snapshot["status"]
         LOGGER.debug("Polling experiment job_id=%s status=%s", snapshot["job_id"], status)
         if status in {"pending", "running"}:
-            return no_update, no_update, False, no_update
+            message = "Queued. Waiting for a computation worker…" if status == "pending" else "Running. Computing your parameter sweep…"
+            return no_update, no_update, False, True, status_banner("idle", message)
         if status == "succeeded":
             result = snapshot["result"]
             try:
                 usage_metrics.record_experiment_run()
             except Exception:
                 LOGGER.exception("Failed to record PyMieSimX experiment-run metric.")
-            return result, int(experiment_runs or 0) + 1, True, False
+            return result, int(experiment_runs or 0) + 1, True, False, status_banner("success", f"Completed. {result['row_count']:,} result rows.")
+        if status == "cancelled":
+            return no_update, no_update, True, False, status_banner("warning", "Run cancelled. Click Run to start another sweep.")
         LOGGER.warning("Experiment job failed job_id=%s error=%s", snapshot["job_id"], snapshot["error"])
-        return no_update, no_update, True, False
+        return no_update, no_update, True, False, status_banner("error", f"Run failed: {snapshot['error'] or 'An unexpected computation error occurred.'}")
 
     @app.callback(
         Output("csv-download", "data"),
@@ -595,7 +610,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("measure-select", "value"),
         prevent_initial_call=True,
     )
-    def _export_csv(n_clicks: int, result: dict | None, measure: str | None):
+    def _export_csv(n_clicks: int, result: dict | None, measure: str | list[str] | None):
         LOGGER.debug("CSV export requested for measure=%s", measure)
 
         if not n_clicks:
@@ -608,7 +623,8 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             LOGGER.debug("No CSV exported because result content is empty")
             return no_update
 
-        filename = f"pymiesim_{measure or 'result'}.csv"
+        exported_measures = (result or {}).get("measures") or [(result or {}).get("measure", "result")]
+        filename = f"pymiesim_{'_'.join(exported_measures)}.csv"
         LOGGER.debug("CSV export generated filename=%s", filename)
         return dcc.send_string(csv_content, filename)
 
@@ -661,7 +677,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("single-result", "data"),
         Output("single-run-count", "data"),
         Input("run-single-button", "n_clicks"),
-        Input("single-projection", "value"),
+        State("single-projection", "value"),
         State("single-source-type", "value"),
         State({"kind": "field", "section": "single-source", "name": ALL}, "value"),
         State({"kind": "field", "section": "single-source", "name": ALL}, "id"),
@@ -673,6 +689,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         State("single-nearfield-mode", "value"),
         State("single-include-incident-field", "value"),
         State("single-run-count", "data"),
+        prevent_initial_call=True,
     )
     def _run_single(
         _run_clicks: int,
@@ -689,6 +706,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         include_incident_field: list[str] | None,
         single_runs: int,
     ):
+        if not _run_clicks:
+            return no_update, no_update
+
         execution = execute_single_callback(
             source_type=source_type,
             source_values=source_values,

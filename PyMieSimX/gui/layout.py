@@ -188,13 +188,14 @@ def _x_axis_card(default_measure_options: list[str]):
                     html.Div(
                         className="graph-axis-field",
                         children=[
-                            html.Label("Y axis", htmlFor="measure-select"),
+                            html.Label("Measures", htmlFor="measure-select"),
                             dcc.Dropdown(
                                 id="measure-select",
                                 className="dashboard-dropdown graph-axis-control",
                                 options=[{"label": measure, "value": measure} for measure in default_measure_options],
-                                value=default_measure_options[0] if default_measure_options else None,
-                                clearable=False,
+                                value=[default_measure_options[0]] if default_measure_options else [],
+                                multi=True,
+                                clearable=True,
                                 searchable=False,
                                 optionHeight=38,
                                 maxHeight=200,

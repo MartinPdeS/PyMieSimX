@@ -12,6 +12,7 @@ from PyMieSimX.gui.computation import (
     _value_cardinality,
     estimate_result_size,
     estimate_sweep_size,
+    normalize_measures,
     validate_experiment_inputs,
 )
 
