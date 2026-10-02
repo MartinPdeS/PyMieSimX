@@ -7,6 +7,8 @@ source:
 
 build:
   number: 0
+  script_env:
+    - SETUPTOOLS_SCM_PRETEND_VERSION={{ GIT_DESCRIBE_TAG | replace("v", "") }}
   entry_points:
     - pymiesimx = PyMieSimX.__main__:main
   script: "{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
@@ -16,6 +18,7 @@ requirements:
     - python {{ PY_VER }}*
     - pip
     - setuptools >=68
+    - setuptools-scm >=8
   run:
     - python {{ PY_VER }}*
     - pymiesim >=5.6.4,<6

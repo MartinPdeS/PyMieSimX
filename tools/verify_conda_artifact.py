@@ -20,7 +20,8 @@ def main() -> None:
     location = Path(module.__file__).resolve()
     if not location.is_relative_to(prefix):
         raise RuntimeError(f"Imported {location} outside the Conda test environment {prefix}")
-    subprocess.run(["pymiesimx", "--help"], check=True)
+    launcher = prefix / ("Scripts/pymiesimx.exe" if sys.platform == "win32" else "bin/pymiesimx")
+    subprocess.run([str(launcher), "--help"], check=True)
 
 
 if __name__ == "__main__":
