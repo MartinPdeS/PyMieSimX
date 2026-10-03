@@ -42,7 +42,7 @@ browser = [
 dev = [
     "build>=1.2",
     "mypy==1.15.0",
-    "ruff==0.11.2",
+    "ruff==0.16.9",
 ]
 
 [tool.setuptools.packages.find]
