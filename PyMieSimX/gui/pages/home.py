@@ -41,7 +41,11 @@ def build_home_page(*, home_visits: int | float | None = None):
                             html.Div(
                                 [
                                     html.A(
-                                        [html.Span("\u2665", className="home-support-icon", **{"aria-hidden": "true"}), "Support Developer"],
+                                        [
+                                            html.Span("♥", className="home-support-icon", **{"aria-hidden": "true"}),
+                                            html.Span("Support Developer", className="home-support-label"),
+                                            html.Span("↗", className="home-support-arrow", **{"aria-hidden": "true"}),
+                                        ],
                                         id="home-support-developer",
                                         href="https://github.com/sponsors/MartinPdeS",
                                         target="_blank",
@@ -49,12 +53,16 @@ def build_home_page(*, home_visits: int | float | None = None):
                                         className="home-support-button",
                                     ),
                                     html.A(
-                                        [html.Span("\u2605", className="home-support-icon", **{"aria-hidden": "true"}), "Star PyMieSim on GitHub"],
+                                        [
+                                            html.Span("☆", className="home-support-icon", **{"aria-hidden": "true"}),
+                                            html.Span("Star PyMieSim on GitHub", className="home-support-label"),
+                                            html.Span("↗", className="home-support-arrow", **{"aria-hidden": "true"}),
+                                        ],
                                         id="home-star-repository",
                                         href="https://github.com/MartinPdeS/PyMieSim",
                                         target="_blank",
                                         rel="noopener noreferrer",
-                                        className="home-support-button",
+                                        className="home-support-button home-star-button",
                                     ),
                                 ],
                                 className="home-support-actions",
@@ -108,8 +116,8 @@ def _visit_metric(home_visits: int | float | None):
         return None
     return html.Div(
         [
-            html.Span("Webapp visits", className="home-visit-label"),
             html.Strong(f"{int(home_visits):,}", id="home-public-visit-count", className="home-visit-value"),
+            html.Span("Webapp visits", className="home-visit-label"),
         ],
         className="home-visit-metric",
     )

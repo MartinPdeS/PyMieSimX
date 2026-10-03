@@ -38,7 +38,7 @@ def test_home_star_button_below_support_developer(dash_duo, viewport):
     support = dash_duo.wait_for_element("#home-support-developer")
     star = dash_duo.wait_for_element("#home-star-repository")
     assert star.is_displayed()
-    assert " ".join(star.text.split()) == "★ Star PyMieSim on GitHub"
+    assert star.find_element("css selector", ".home-support-label").text == "Star PyMieSim on GitHub"
     assert star.get_attribute("href") == "https://github.com/MartinPdeS/PyMieSim"
     assert star.get_attribute("target") == "_blank"
     assert set(star.get_attribute("rel").split()) == {"noopener", "noreferrer"}

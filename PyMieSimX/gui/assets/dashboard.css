@@ -499,9 +499,9 @@ html .home-metric-tile { font-size: .92rem !important; }
 .version-widget-label { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
 .version-widget-value { font-size: .92rem; font-weight: 700; }
 
-html .home-page-hero { padding: 26px !important; border-radius: 15px; border-left: 5px solid rgba(13, 110, 253, .75); }
-html .home-page-hero h1 { margin: 0 0 8px; font-family: inherit !important; font-size: 2.55rem !important; font-weight: 800; line-height: 1.05; }
-html .home-page-hero .hero-text { max-width: 980px; margin: 0; font-size: 1.08rem !important; line-height: normal; opacity: .86; }
+html .home-page-hero { padding: 30px !important; border-radius: 15px; border-left: 5px solid rgba(13, 110, 253, .75); }
+html .home-page-hero h1 { margin: 0 0 12px; letter-spacing: -.045em; font-family: inherit !important; font-size: 2.55rem !important; font-weight: 800; line-height: 1.05; }
+html .home-page-hero .hero-text { max-width: 460px; margin: 0; font-size: 1rem !important; line-height: 1.6; opacity: .7; }
 
 html .home-metrics-card > .card-body {
     display: grid;
@@ -3869,76 +3869,85 @@ html .single-workspace .representation-card {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 24px;
+    gap: 28px;
     flex-wrap: wrap;
 }
 
 .home-hero-copy {
-    flex: 1 1 360px;
+    flex: 1 1 300px;
     min-width: 0;
 }
 
 .home-hero-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 26px;
     margin-left: auto;
 }
 
 .home-visit-metric {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 9px 16px;
-    border: 1px solid #cddcec;
-    border-radius: 9px;
-    background: #f3f7fc;
-    color: #2f4358;
-}
-
-.home-visit-label {
-    font-size: .72rem;
-    font-weight: 600;
+    gap: 4px;
+    padding-right: 26px;
+    border-right: 1px solid #e5e7eb;
 }
 
 .home-visit-value {
-    font-size: 1.2rem;
+    font-size: 1.9rem;
+    font-weight: 750;
     line-height: 1.2;
+    letter-spacing: -.04em;
     font-variant-numeric: tabular-nums;
+}
+
+.home-visit-label {
+    font-size: .75rem;
+    opacity: .6;
 }
 
 .home-support-actions {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 8px;
 }
 
 .home-support-button {
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    flex: 0 0 auto;
-    padding: 10px 17px;
-    border: 1px solid #e8c56b;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #fff8e3, #ffe8a9);
-    color: #704912;
-    font-size: .92rem;
-    font-weight: 700;
+    gap: 10px;
+    min-height: 42px;
+    padding: 8px 13px;
+    border: 1px solid #e8d6ad;
+    border-radius: 10px;
+    background: #fcf5e7;
+    color: #795520;
+    font-size: .82rem;
+    font-weight: 650;
+    line-height: 1.4;
     text-decoration: none;
-    white-space: nowrap;
-    box-shadow: 0 3px 9px rgba(151, 104, 23, .10);
-    transition: background 150ms ease, box-shadow 150ms ease;
+    transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .home-support-button:hover {
-    background: #ffe49a;
-    color: #58350b;
+    background: #f8ecd2;
+    border-color: #d7bd85;
+    color: #674516;
     text-decoration: none;
-    box-shadow: 0 4px 12px rgba(151, 104, 23, .18);
+    box-shadow: 0 2px 6px rgba(112, 79, 25, .08);
+}
+
+.home-star-button {
+    background: #fff;
+    border-color: #e5e7eb;
+    color: #343b46;
+}
+
+.home-star-button:hover {
+    background: #f5f6f8;
+    border-color: #cbd0d8;
+    color: #343b46;
 }
 
 .home-support-button:focus-visible {
@@ -3947,8 +3956,47 @@ html .single-workspace .representation-card {
 }
 
 .home-support-icon {
-    color: #ad6515;
-    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.home-support-label {
+    flex: 1;
+}
+
+.home-support-arrow {
+    font-size: 1rem;
+    opacity: .45;
+}
+
+@media (max-width: 575px) {
+    html .home-page-hero {
+        padding: 22px !important;
+        gap: 22px;
+    }
+
+    .home-hero-actions {
+        justify-content: space-between;
+        width: 100%;
+        margin-left: 0;
+        gap: 18px;
+    }
+
+    .home-visit-metric {
+        border-right: 0;
+        padding-right: 0;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 10px;
+    }
+
+    .home-support-actions {
+        width: 100%;
+    }
 }
 
 .admin-page {
