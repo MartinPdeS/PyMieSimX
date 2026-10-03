@@ -3910,12 +3910,17 @@ html .single-workspace .representation-card {
     font-variant-numeric: tabular-nums;
 }
 
+.home-support-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
 .home-support-button {
     display: inline-flex;
     align-items: center;
     gap: 9px;
     flex: 0 0 auto;
-    margin-left: auto;
     padding: 10px 17px;
     border: 1px solid #e8c56b;
     border-radius: 9px;

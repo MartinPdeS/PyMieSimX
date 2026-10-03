@@ -30,6 +30,22 @@ def _wait_for_sidebar_transition(dash_duo, sidebar_id="experiment-right-sidebar"
     )
 
 
+@pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])
+def test_home_star_button_below_support_developer(dash_duo, viewport):
+    dash_duo.driver.set_window_size(*viewport)
+    dash_duo.start_server(create_dash_app())
+    support = dash_duo.wait_for_element("#home-support-developer")
+    star = dash_duo.wait_for_element("#home-star-repository")
+    assert star.is_displayed()
+    assert " ".join(star.text.split()) == "★ Star PyMieSim on GitHub"
+    assert star.get_attribute("href") == "https://github.com/MartinPdeS/PyMieSim"
+    assert star.get_attribute("target") == "_blank"
+    assert set(star.get_attribute("rel").split()) == {"noopener", "noreferrer"}
+    assert star.rect["y"] >= support.rect["y"] + support.rect["height"]
+    assert star.rect["x"] == pytest.approx(support.rect["x"])
+    assert star.rect["x"] + star.rect["width"] <= dash_duo.driver.execute_script("return window.innerWidth")
+
+
 @pytest.mark.parametrize("viewport", [(1440, 1000), (960, 1000)], ids=["desktop", "compact"])
 def test_navigation_validation_execution_plot_and_export_controls(dash_duo, viewport):
     # Chrome's default headless window puts Run below the visible compact header.

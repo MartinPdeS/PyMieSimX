@@ -38,13 +38,26 @@ def build_home_page(*, home_visits: int | float | None = None):
                     html.Div(
                         [
                             _visit_metric(home_visits),
-                            html.A(
-                                [html.Span("\u2665", className="home-support-icon", **{"aria-hidden": "true"}), "Support Developer"],
-                                id="home-support-developer",
-                                href="https://github.com/sponsors/MartinPdeS",
-                                target="_blank",
-                                rel="noopener noreferrer",
-                                className="home-support-button",
+                            html.Div(
+                                [
+                                    html.A(
+                                        [html.Span("\u2665", className="home-support-icon", **{"aria-hidden": "true"}), "Support Developer"],
+                                        id="home-support-developer",
+                                        href="https://github.com/sponsors/MartinPdeS",
+                                        target="_blank",
+                                        rel="noopener noreferrer",
+                                        className="home-support-button",
+                                    ),
+                                    html.A(
+                                        [html.Span("\u2605", className="home-support-icon", **{"aria-hidden": "true"}), "Star PyMieSim on GitHub"],
+                                        id="home-star-repository",
+                                        href="https://github.com/MartinPdeS/PyMieSim",
+                                        target="_blank",
+                                        rel="noopener noreferrer",
+                                        className="home-support-button",
+                                    ),
+                                ],
+                                className="home-support-actions",
                             ),
                         ],
                         className="home-hero-actions",
