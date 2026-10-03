@@ -38,7 +38,7 @@ def create_dash_app() -> Dash:
     """Create and configure the experiment dashboard Dash application."""
     application = Dash(
         __name__,
-        title="PyMieSim Parameter Sweep Lab",
+        title="PyMieSim",
         assets_folder=str(Path(__file__).with_name("assets")),
         suppress_callback_exceptions=True,
     )

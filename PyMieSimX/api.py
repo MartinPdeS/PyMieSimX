@@ -19,7 +19,11 @@ from PyMieSimX.gui.services import (
     validate_experiment_inputs,
 )
 
+from PyMieSimX.gui.population_service import compute_population_optics, export_population_to_csv
+
 __all__ = [
+    "compute_population_optics",
+    "export_population_to_csv",
     "MAX_SWEEP_COMBINATIONS",
     "MAX_RESULT_FRAME_BYTES",
     "MAX_RESULT_PAYLOAD_BYTES",

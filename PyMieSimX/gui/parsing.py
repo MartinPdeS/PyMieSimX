@@ -123,6 +123,17 @@ def parse_mode_numbers(raw_value: Any) -> Any:
     return parsed
 
 
+def is_numeric_material_value(raw_value: Any) -> bool:
+    """Recognize numeric RI syntax, including complex indices and scientific notation."""
+    try:
+        parsed = parse_expression(raw_value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return isinstance(parsed, (int, float, complex, np.ndarray)) or (
+        isinstance(parsed, list) and all(isinstance(value, (int, float, complex)) for value in parsed)
+    )
+
+
 def parse_material_values(raw_value: Any, *, medium: bool = False) -> Any:
     """Parse numeric or named material or medium definitions."""
     parsed = parse_expression(raw_value)

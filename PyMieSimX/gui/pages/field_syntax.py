@@ -39,7 +39,7 @@ def build_field_syntax_page():
                 className=Card.classes(color="blue", extra="panel documentation-note"),
                 children=[
                     html.Div(className="card-header panel-header", children=[html.H2("Continue exploring")]),
-                    html.Div(className="card-body documentation-note-body", children=[html.P("Use these definitions while configuring a Parameter Sweep or Particle Explorer run."), html.A("Back to documentation →", href="/documentation", className="inline-action")]),
+                    html.Div(className="card-body documentation-note-body", children=[html.P("Use these definitions while configuring a Parameter Scan or Single Scatterer run."), html.A("Back to documentation →", href="/documentation", className="inline-action")]),
                 ],
             ),
         ],

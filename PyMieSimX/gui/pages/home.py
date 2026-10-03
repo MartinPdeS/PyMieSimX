@@ -68,24 +68,34 @@ def build_home_page(*, home_visits: int | float | None = None):
                 className="home-capability-grid",
                 children=[
                     _capability_card(
-                        "Particle Explorer",
+                        "Single Scatterer",
                         "Inspect one optical setup through angular scattering, polarization, phase functions, and field representations.",
                         ["Configure source", "Configure scatterer", "Render representations"],
-                        "Open Particle Explorer",
+                        "Open Single Scatterer",
                         "/single",
                         html.Img(src="/assets/home-spf-radial.gif", className="home-capability-preview home-capability-preview-image", alt="Rotating scattering phase function 3D radial surface"),
                         "Scattering phase function — rotating 3D radial surface",
                         "purple",
                     ),
                     _capability_card(
-                        "Parameter Sweep",
+                        "Parameter Scan",
                         "Run source, scatterer, and detector configurations across parameter sweeps and export structured results for analysis.",
                         ["Configure source", "Configure scatterer and detector", "Run and export results"],
-                        "Open Parameter Sweep",
+                        "Open Parameter Scan",
                         "/experiment",
                         _qsca_preview(),
                         "Scattering-efficiency sweep",
                         "green",
+                    ),
+                    _capability_card(
+                        "Ensemble Optics",
+                        "Turn a particle size distribution and concentration into scattering, absorption, albedo, and averaged optical properties at one wavelength.",
+                        ["Define particle properties", "Choose a distribution and concentration", "Compute all properties and export"],
+                        "Open Ensemble Optics",
+                        "/population",
+                        _distribution_preview(),
+                        "Gaussian and lognormal size distributions",
+                        "blue",
                     ),
                 ],
             ),
@@ -128,6 +138,7 @@ def _capability_card(
         className="home-capability-preview",
     )
     return html.Section(
+        id=f"home-workflow-{href.strip('/')}",
         className=Card.classes(color=color, extra="home-capability-card"),
         children=[
             html.Div(title, className="home-section-header"),
@@ -219,4 +230,22 @@ def _qsca_preview() -> go.Figure:
         legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": 1.13, "font": {"size": 10}},
         margin={"t": 32},
     )
+    return figure
+
+
+def _distribution_preview() -> go.Figure:
+    """Illustrate Gaussian and lognormal particle-size probability densities."""
+    diameter = np.linspace(100, 1000, 240)
+    sigma_log = np.log(1.3)
+    lognormal = np.exp(-0.5 * (np.log(diameter / 450) / sigma_log) ** 2) / (diameter * sigma_log * np.sqrt(2 * np.pi))
+    gaussian = np.exp(-0.5 * ((diameter - 520) / 80) ** 2) / (80 * np.sqrt(2 * np.pi))
+    figure = go.Figure([
+        go.Scatter(x=diameter, y=lognormal, mode="lines", name="Lognormal", hoverinfo="skip",
+                   line={"color": "#2672d6", "width": 3}, fill="tozeroy", fillcolor="rgba(38,114,214,.15)"),
+        go.Scatter(x=diameter, y=gaussian, mode="lines", name="Gaussian", hoverinfo="skip",
+                   line={"color": "#b47b1d", "width": 3, "dash": "dot"}),
+    ])
+    figure = _preview_layout(figure, x_title="Diameter (nm)", y_title="Probability density (nm⁻¹)")
+    figure.update_layout(showlegend=True, margin={"t": 32},
+                         legend={"orientation": "h", "x": 0.5, "xanchor": "center", "y": 1.13, "font": {"size": 10}})
     return figure

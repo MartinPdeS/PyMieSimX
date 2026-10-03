@@ -20,6 +20,12 @@ class FieldSpec:
     placeholder: str = ""
 
 
+POPULATION_OPTICAL_FIELDS = (
+    FieldSpec("material", "Particle material", "material", "1.5+0.01j", help_text="Use one refractive index n+ik (k ≥ 0), or switch to Material to choose a PyOptik material."),
+    FieldSpec("medium", "Medium", "medium", "1.33", help_text="Use one positive real refractive index, or switch to Material to choose a named medium."),
+)
+
+
 SOURCE_FIELDS = {
     "GaussianSet": (
         FieldSpec("wavelength", "Wavelength", "quantity", "600:1000:150", ureg.nanometer, help_text="Use a single value, comma-separated values, or start:end:count."),

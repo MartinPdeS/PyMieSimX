@@ -20,6 +20,53 @@ optical setups, run parameter sweeps, explore individual particles, and download
 your results as CSV files. The hosted service provides direct access to the
 graphical interface; local installation is also available below.
 
+Ensemble Optics
+---------------
+
+Open **Ensemble Optics** to compute the properties of a homogeneous spherical
+particle population at one vacuum wavelength, without a parameter sweep. The
+collapsible Particle, Distribution, and Concentration side tabs hold the inputs;
+the Model tab explains the assumptions and averaging. Choose a monodisperse,
+truncated Gaussian, lognormal, or uniform number-based diameter distribution
+and supply a number concentration (particles/mL) or volume fraction.
+Gaussian width is a standard deviation in nm; lognormal width is a geometric
+standard deviation (greater than 1 and at most 3). Gaussian bounds are positive
+and the distribution is renormalized within them. Named optical materials are
+resolved through PyOptik, or you can enter a particle index ``n+ik`` and a real
+medium index directly. Both fields use the same RI/Material toggle as the other
+workspaces; switching back to RI restores the previously entered index.
+
+Results include scattering, particle absorption, extinction, reduced scattering
+(in inverse millimeters), population single-scattering albedo, effective
+anisotropy, averaged cross sections, and both number- and area-weighted
+efficiencies. Cross sections are number averages; area efficiencies divide mean
+cross section by mean projected area. Effective anisotropy is weighted by
+scattering cross section. Population albedo is mean scattering cross section
+divided by mean extinction cross section, rather than a number average of
+individual albedos. Undefined ratios are displayed as undefined.
+
+The calculation assumes independent scattering and excludes particle
+interactions, multiple scattering, and host-medium absorption. Use dilute
+populations. Preview the discrete number fractions, increase sampling to check
+convergence, and export results with units, definitions, inputs, and weights.
+PyMieSim 5.7.1 or newer supplies the distribution and averaging routines.
+
+The same calculation is available without constructing the GUI::
+
+    from PyMieSimX import compute_population_optics, export_population_to_csv
+
+    result = compute_population_optics(
+        wavelength_nm=650,
+        material="1.5+0.01j",
+        medium="1.33",
+        distribution="lognormal",
+        diameter_nm=500,
+        width=1.2,
+        concentration=1e9,
+        concentration_basis="number",
+    )
+    csv_text = export_population_to_csv(result)
+
 Source-model note
 -----------------
 
@@ -99,7 +146,7 @@ available for applications that need the graphical interface.
 Multiple measures
 -----------------
 
-The Parameter Sweep Measures selector accepts several quantities in one run.
+The Parameter Scan Measures selector accepts several quantities in one run.
 For example, select ``Qsca``, ``Qabs``, and ``Qext`` to compare scattering,
 absorption, and extinction efficiencies. Measures with the same units share a
 plot; different units use separate panels with a shared X axis. CSV exports

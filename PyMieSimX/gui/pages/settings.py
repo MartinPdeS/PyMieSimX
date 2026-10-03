@@ -23,12 +23,12 @@ def build_settings_page(theme: str = DEFAULT_APPLICATION_SETTINGS["theme"], plot
                     html.P("Tune the dashboard appearance and configure each plotting workspace independently. Changes are saved automatically in this browser.", className="hero-text"),
                 ],
             ),
-            html.Div(className="settings-grid", children=[_appearance_card(theme), _plot_card("particle", "Particle Explorer", "blue", particle), _plot_card("sweep", "Parameter Sweep", "yellow", sweep)]),
+            html.Div(className="settings-grid", children=[_appearance_card(theme), _plot_card("particle", "Single Scatterer", "blue", particle), _plot_card("sweep", "Parameter Scan", "yellow", sweep)]),
             html.Section(
                 className=Card.classes(color="blue", extra="panel settings-note"),
                 children=[
                     html.Div(className="card-header panel-header", children=[html.H2("How settings are applied")]),
-                    html.Div(className="card-body", children=[html.P("Particle Explorer and Parameter Sweep remember separate plotting preferences. Polar coordinates are applied to trace-based plots when the representation supports them; heatmaps remain Cartesian."), html.Div(id="settings-save-status", className="settings-save-status", children="All settings are saved automatically.")]),
+                    html.Div(className="card-body", children=[html.P("Single Scatterer and Parameter Scan remember separate plotting preferences. Polar coordinates are applied to trace-based plots when the representation supports them; heatmaps remain Cartesian."), html.Div(id="settings-save-status", className="settings-save-status", children="All settings are saved automatically.")]),
                 ],
             ),
         ],

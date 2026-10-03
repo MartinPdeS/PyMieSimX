@@ -81,7 +81,7 @@ def build_sellmeier_page():
                     html.Div(
                         className="card-body documentation-note-body",
                         children=[
-                            html.P("Open the material fields in Parameter Sweep or Particle Explorer to apply these values."),
+                            html.P("Open the material fields in Parameter Scan or Single Scatterer to apply these values."),
                             html.A("Back to documentation hub ->", href="/documentation", className="inline-action"),
                         ],
                     ),

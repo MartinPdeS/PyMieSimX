@@ -3717,8 +3717,8 @@ html .plot-options-card .plot-option-control.dashboard-dropdown .Select-control 
     font-weight: 650;
 }
 
-/* Match Particle Explorer representation controls to the compact Graph Axes
-   card used by Parameter Sweep. */
+/* Match Single Scatterer representation controls to the compact Graph Axes
+   card used by Parameter Scan. */
 .single-workspace .representation-card {
     width: 100%;
     max-width: none;
@@ -3997,3 +3997,13 @@ html .single-workspace .representation-card {
     grid-template-columns: 1fr;
   }
 }
+
+/* Ensemble Optics shares the workspace toolbar and collapsible side panels. */
+.population-workspace, .population-output { display: grid; gap: 20px; min-width: 0; }
+.population-page .field-block { margin-bottom: 14px; }
+.population-page .field-block small { display: block; margin-top: 6px; opacity: .75; }
+.population-page .field-input { width: 100%; }
+.population-page .documentation-table { width: 100%; }
+.population-page .documentation-table td { overflow-wrap: anywhere; }
+#population-status, #population-preview-error { margin-bottom: 12px; }
+#population-results { overflow-x: auto; }

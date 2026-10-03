@@ -1,4 +1,4 @@
-"""Parameter Sweep page composition."""
+"""Parameter Scan page composition."""
 
 
 from dash import dcc, html
@@ -10,7 +10,7 @@ from .sections import build_detector_section, build_scatterer_section, build_sou
 
 
 def build_experiment_page(default_measure_options: list[str], plot_settings: dict | None = None):
-    """Build the isolated Parameter Sweep workspace."""
+    """Build the isolated Parameter Scan workspace."""
     settings = (plot_settings or {}).get("parameter_sweep", {})
     return html.Div(
         className="tab-content-stack experiment-tab-content",

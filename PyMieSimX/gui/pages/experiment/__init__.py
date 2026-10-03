@@ -1,4 +1,4 @@
-"""Parameter Sweep page and sections."""
+"""Parameter Scan page and sections."""
 
 from .page import build_experiment_page
 

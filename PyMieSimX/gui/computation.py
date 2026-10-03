@@ -745,9 +745,9 @@ def _plotly_array(value: Any) -> np.ndarray:
 
 
 def export_single_result_to_csv(result: dict[str, Any] | None) -> str:
-    """Serialize a Particle Explorer figure payload to CSV text."""
+    """Serialize a Single Scatterer figure payload to CSV text."""
     if not result or not result.get("figure"):
-        LOGGER.debug("Particle Explorer CSV export requested without a result")
+        LOGGER.debug("Single Scatterer CSV export requested without a result")
         return ""
 
     traces = result["figure"].get("data", [])

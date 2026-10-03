@@ -5,6 +5,7 @@ from dash import dcc, html
 
 from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PLOT_SETTINGS
 from PyMieSimX.gui.material_catalog import material_dropdown_options
+from PyMieSimX.gui.parsing import is_numeric_material_value
 from PyMieSimX.gui.schemas import FieldSpec, SECTION_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS
 
 
@@ -305,8 +306,9 @@ def _build_sidebar():
                 className="sidebar-nav",
                 children=[
                     _sidebar_link("Home", "/"),
-                    _sidebar_link("Particle Explorer", "/single"),
-                    _sidebar_link("Parameter Sweep", "/experiment"),
+                    _sidebar_link("Single Scatterer", "/single"),
+                    _sidebar_link("Parameter Scan", "/experiment"),
+                    _sidebar_link("Ensemble Optics", "/population"),
                     _sidebar_link("Documentation", "/documentation"),
                     _sidebar_link("Settings", "/settings"),
                 ],
@@ -360,7 +362,7 @@ def render_field(section: str, field_spec: FieldSpec):
     if field_spec.kind in {"material", "medium"}:
         is_medium = field_spec.kind == "medium"
         default_text = str(field_spec.default)
-        default_is_named = any(char.isalpha() for char in default_text)
+        default_is_named = bool(default_text.strip()) and not is_numeric_material_value(default_text)
         named_options = material_dropdown_options(medium=is_medium)
         default_from_catalog = named_options[0]["value"] if named_options else None
         named_values = {option["value"] for option in named_options}

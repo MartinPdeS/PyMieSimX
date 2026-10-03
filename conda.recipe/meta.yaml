@@ -21,7 +21,7 @@ requirements:
     - setuptools-scm >=8
   run:
     - python {{ PY_VER }}*
-    - pymiesim >=5.6.4,<6
+    - pymiesim >=5.7.1,<6
     - pyoptik >=3.2.1,<4
     - dash >=4.1.0,<5
     - gunicorn >=23.0.0,<24  # [not win]

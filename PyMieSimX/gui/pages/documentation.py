@@ -19,8 +19,8 @@ def build_documentation_page():
                     html.Div(
                         className="documentation-hero-actions",
                         children=[
-                            html.A("Start a parameter sweep →", href="/experiment", className="home-button home-button-primary"),
-                            html.A("Open Particle Explorer →", href="/single", className="home-button home-button-outline"),
+                            html.A("Open Parameter Scan →", href="/experiment", className="home-button home-button-primary"),
+                            html.A("Open Single Scatterer →", href="/single", className="home-button home-button-outline"),
                         ],
                     ),
                 ],
@@ -32,7 +32,7 @@ def build_documentation_page():
                     html.Div(
                         className="card-body documentation-quickstart-body",
                         children=[
-                            _step("01", "Choose a workspace", "Use Parameter Sweep for parameter sweeps and detector coupling. Use Particle Explorer to inspect one optical setup."),
+                            _step("01", "Choose a workspace", "Use Parameter Scan for parameter sweeps and detector coupling. Use Single Scatterer to inspect one optical setup."),
                             _step("02", "Configure the objects", "Pick a source, scatterer, and—when needed—a detector. Each card exposes the fields supported by that model."),
                             _step("03", "Enter values or sweeps", "Use one value for a focused run, a comma-separated list for selected values, or start:end:count for an evenly spaced sweep."),
                             _step("04", "Render and inspect", "Run the calculation, select the X axis when several fields vary, and use Settings to tune the resulting plots."),
@@ -43,8 +43,9 @@ def build_documentation_page():
             html.Div(
                 className="documentation-grid documentation-topic-grid",
                 children=[
-                    _guide_card("yellow", "Parameter Sweep", "Sweep a parameter space", "Build a source, scatterer, and detector, then evaluate a measure over every combination.", ["X-axis is inferred from fields with multiple values.", "Detector-free runs are supported.", "Results can be exported as CSV."], "/experiment", "Open Parameter Sweep"),
-                    _guide_card("blue", "Particle Explorer", "Understand one setup", "Inspect angular amplitudes, polarization, phase functions, or far-field intensity for one source and scatterer.", ["Choose a representation.", "Control angular sampling.", "Render the figure on demand."], "/single", "Open Particle Explorer"),
+                    _guide_card("yellow", "Parameter Scan", "Sweep a parameter space", "Build a source, scatterer, and detector, then evaluate a measure over every combination.", ["X-axis is inferred from fields with multiple values.", "Detector-free runs are supported.", "Results can be exported as CSV."], "/experiment", "Open Parameter Scan"),
+                    _guide_card("blue", "Single Scatterer", "Understand one setup", "Inspect angular amplitudes, polarization, phase functions, or far-field intensity for one source and scatterer.", ["Choose a representation.", "Control angular sampling.", "Render the figure on demand."], "/single", "Open Single Scatterer"),
+                    _guide_card("orange", "Ensemble Optics", "Calculate population properties", "Define a particle size distribution and concentration at one wavelength.", ["Gaussian, lognormal, uniform, or monodisperse sizes.", "Scattering, absorption, albedo, and averaged efficiencies.", "Export results and distribution weights as CSV."], "/population", "Open Ensemble Optics"),
                     _guide_card("green", "Material model", "Sellmeier relation", "Understand dispersive refractive-index modeling and check the coefficient table used for material workflows.", ["See the Sellmeier equation.", "Review coefficient values.", "Map values to material inputs."], "/documentation/sellmeier", "Open Sellmeier reference"),
                     _guide_card("blue", "Input reference", "Field syntax & vocabulary", "Learn compact field notation, detector definitions, and the model terms used throughout the dashboard.", ["Enter scalars, lists, and ranges.", "Understand detector choices.", "Review supported model families."], "/documentation/field-syntax", "Open field reference"),
                     _guide_card("cyan", "Plot settings", "Make figures your own", "Set typography, line and marker sizes, grid visibility, legend visibility, and light or dark plot styling.", ["Preferences are saved in this browser.", "Settings apply to both workspaces.", "The application theme is controlled here."], "/settings", "Open Settings"),

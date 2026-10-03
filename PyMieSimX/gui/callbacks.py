@@ -18,7 +18,10 @@ from PyMieSimX.gui.pages.install_local import build_install_local_page
 from PyMieSimX.gui.pages.experiment import build_experiment_page
 from PyMieSimX.gui.pages.settings import build_settings_page
 from PyMieSimX.gui.pages.single import build_single_page
-from PyMieSimX.gui.schemas import DETECTOR_FIELDS, SCATTERER_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS, SOURCE_FIELDS
+from PyMieSimX.gui.pages.population import build_population_page, register_population_callbacks
+from PyMieSimX.gui.parsing import is_numeric_material_value
+from PyMieSimX.gui.population_service import parse_population_material
+from PyMieSimX.gui.schemas import POPULATION_OPTICAL_FIELDS, DETECTOR_FIELDS, SCATTERER_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS, SOURCE_FIELDS
 from PyMieSimX.gui.callback_helpers import (
     execute_single_callback,
     merge_local_plot_values as _merge_local_plot_values,
@@ -59,6 +62,7 @@ def _counter(value: object) -> int:
 
 def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     """Register all dashboard callbacks."""
+    register_population_callbacks(app)
     LOGGER.debug("Registering dashboard callbacks")
 
     @app.callback(
@@ -152,12 +156,32 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
 
 
     @app.callback(
+        Output("population-right-sidebar", "className"),
+        Output("population-right-sidebar-active", "data"),
+        *[Output(f"population-tab-{name}", "className") for name in ("particle", "distribution", "concentration", "model")],
+        *[Output(f"population-panel-{name}", "style") for name in ("particle", "distribution", "concentration", "model")],
+        *[Input(f"population-tab-{name}", "n_clicks") for name in ("particle", "distribution", "concentration", "model")],
+        Input("page-content", "n_clicks"),
+        Input("dashboard-sidebar", "n_clicks"),
+        Input("population-right-sidebar", "n_clicks"),
+        State("population-right-sidebar", "className"),
+        State("population-right-sidebar-active", "data"),
+        prevent_initial_call=True,
+    )
+    def _handle_population_sidebar_tabs(_particle_clicks, _distribution_clicks, _concentration_clicks, _model_clicks,
+                                        _page_clicks, _sidebar_clicks, _right_sidebar_clicks, current_class, current_active):
+        tab_ids = [f"population-tab-{name}" for name in ("particle", "distribution", "concentration", "model")]
+        return _handle_sidebar_tabs(tab_ids, ["blue", "yellow", "cyan", "purple"], current_class, current_active, "population-right-sidebar")
+
+
+    @app.callback(
         Output("page-content", "children"),
         Output("sidebar-link-home", "className"),
         Output("sidebar-link-experiment", "className"),
         Output("sidebar-link-single", "className"),
         Output("sidebar-link-documentation", "className"),
         Output("sidebar-link-settings", "className"),
+        Output("sidebar-link-population", "className"),
         Output("home-visit-count", "data"),
         Input("url", "pathname"),
         Input("url", "search"),
@@ -176,6 +200,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "single": "sidebar-link",
             "documentation": "sidebar-link",
             "settings": "sidebar-link",
+            "population": "sidebar-link",
         }
         home_visits = _counter(home_visits)
         if route == "/":
@@ -187,33 +212,36 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 home_visits = float("nan")
         if route == "/admin":
             token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
-            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/documentation":
             active["documentation"] += " active"
-            return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/citation":
             active["home"] += " active"
-            return build_page_with_footer(build_citation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_citation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/documentation/install-local":
             active["documentation"] += " active"
-            return build_page_with_footer(build_install_local_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_install_local_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/documentation/sellmeier":
             active["documentation"] += " active"
-            return build_page_with_footer(build_sellmeier_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_sellmeier_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/documentation/field-syntax":
             active["documentation"] += " active"
-            return build_page_with_footer(build_field_syntax_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_field_syntax_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/settings":
             active["settings"] += " active"
-            return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/single":
             active["single"] += " active"
-            return build_page_with_footer(build_single_page((plot_settings or {}).get("particle_explorer", {}))), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_single_page((plot_settings or {}).get("particle_explorer", {}))), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+        if route == "/population":
+            active["population"] += " active"
+            return build_page_with_footer(build_population_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/experiment":
             active["experiment"] += " active"
-            return build_page_with_footer(build_experiment_page(default_measure_options, plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+            return build_page_with_footer(build_experiment_page(default_measure_options, plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         active["home"] += " active"
-        return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings")), home_visits
+        return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
 
     @app.callback(
         Output("admin-home-page-visits", "children"),
@@ -316,6 +344,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "detector": detector_type,
             "single-source": single_source_type,
             "single-scatterer": single_scatterer_type,
+            "population": "Sphere",
         }
         schema_groups = {
             "source": SOURCE_FIELDS,
@@ -323,6 +352,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "detector": DETECTOR_FIELDS,
             "single-source": SINGLE_SOURCE_FIELDS,
             "single-scatterer": SINGLE_SCATTERER_FIELDS,
+            "population": {"Sphere": POPULATION_OPTICAL_FIELDS},
         }
 
         classes = []
@@ -340,7 +370,8 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 valid = field.optional and empty
                 if not empty:
                     try:
-                        parsed_value = _parse_field_value(field.kind, raw_value, field.unit)
+                        parsed_value = (parse_population_material(raw_value, medium=field.name == "medium")
+                                        if section == "population" else _parse_field_value(field.kind, raw_value, field.unit))
                         if field.name in {"wavelength", "optical_power", "numerical_aperture", "amplitude", "diameter", "core_diameter", "shell_thickness", "sampling"}:
                             _validate_positive_field(field.name, parsed_value)
                         valid = True
@@ -403,7 +434,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         dropdown_style = {} if use_named_material else {"display": "none"}
         ri_value = stored_ri_value or "1.4"
 
-        if current_value and not any(char.isalpha() for char in str(current_value)):
+        if current_value and is_numeric_material_value(current_value):
             ri_value = current_value
 
         if use_named_material and selected_material:

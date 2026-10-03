@@ -10,6 +10,8 @@ from PyMieSimX.api import (
     ResultSizeEstimate,
     ResultSizeLimitError,
     ValidationIssue,
+    compute_population_optics,
+    export_population_to_csv,
     available_measures,
     build_figure,
     build_single_figure,
@@ -27,6 +29,8 @@ except PackageNotFoundError:
     __version__ = "0+unknown"
 
 __all__ = [
+    "compute_population_optics",
+    "export_population_to_csv",
     "MAX_SWEEP_COMBINATIONS",
     "MAX_RESULT_FRAME_BYTES",
     "MAX_RESULT_PAYLOAD_BYTES",
