@@ -18,7 +18,7 @@
 | PyMieSimX/gui/pages/citation.py                        |        7 |        1 |        0 |        0 |     85.71% |        24 |
 | PyMieSimX/gui/pages/documentation.py                   |        8 |        3 |        0 |        0 |     62.50% |10, 65, 69 |
 | PyMieSimX/gui/pages/field\_syntax.py                   |       15 |        8 |        0 |        0 |     46.67% |10, 50-51, 61-62, 69-70, 77 |
-| PyMieSimX/gui/pages/home.py                            |       35 |        2 |        2 |        0 |     94.59% |     98-99 |
+| PyMieSimX/gui/pages/home.py                            |       35 |        2 |        2 |        0 |     94.59% |   111-112 |
 | PyMieSimX/gui/pages/install\_local.py                  |       12 |        3 |        0 |        0 |     75.00% |16, 32, 37 |
 | PyMieSimX/gui/pages/sellmeier.py                       |       18 |       11 |        2 |        0 |     35.00% |11-43, 95, 122, 149 |
 | PyMieSimX/gui/pages/settings.py                        |       21 |       11 |        0 |        0 |     47.62% |12-15, 40-41, 45, 55, 78, 82, 86 |
