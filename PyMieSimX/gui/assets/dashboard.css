@@ -4077,6 +4077,9 @@ html .single-workspace .representation-card {
     .workspace-header .eyebrow { min-height: 2lh; }
     .workspace-header .hero-text { min-height: 4lh; }
 }
+@media (max-width: 380px) {
+    .workspace-header .hero-text { min-height: 6lh; }
+}
 
 .simulation-share-feedback { display: grid; gap: 8px; font-size: .86rem; color: var(--muted); }
 .simulation-share-actions { display: contents; }
