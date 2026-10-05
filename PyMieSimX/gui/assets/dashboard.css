@@ -4078,6 +4078,7 @@ html .single-workspace .representation-card {
     .workspace-header .hero-text { min-height: 4lh; }
 }
 @media (max-width: 380px) {
+    .workspace-header .eyebrow { min-height: 3lh; }
     .workspace-header .hero-text { min-height: 6lh; }
 }
 
