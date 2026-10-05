@@ -20,6 +20,21 @@ optical setups, run parameter sweeps, explore individual particles, and download
 your results as CSV files. The hosted service provides direct access to the
 graphical interface; local installation is also available below.
 
+Sharing simulations
+-------------------
+
+Use **Copy simulation link** in Single Scatterer, Parameter Scan, or Ensemble
+Optics to share the current setup. Links preserve the input values, sweep
+ranges, selected measures, and plot settings without requiring an account.
+Opening a link restores the setup and automatically runs the simulation once
+the inputs and plot settings are ready. Later edits can be calculated with
+**Run**. If clipboard access is unavailable, use **Show simulation
+link** and copy the displayed URL.
+
+Links store the configuration rather than a result snapshot. Recalculation
+uses the installed solver and optical material data, so results can change
+after those dependencies are updated.
+
 Ensemble Optics
 ---------------
 

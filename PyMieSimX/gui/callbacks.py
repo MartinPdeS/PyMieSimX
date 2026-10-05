@@ -31,6 +31,7 @@ from PyMieSimX.gui.callback_helpers import (
 from PyMieSimX.gui.jobs import experiment_jobs
 from PyMieSimX.gui.validation import normalize_measures
 from PyMieSimX.gui import usage_metrics
+from PyMieSimX.gui.sharing import register_sharing_callbacks, read_simulation, shared_setup, shared_plot_settings, restore_controls
 from PyMieSimX.gui.admin import build_admin_page, collect_admin_dashboard_data, dashboard_values, is_admin_access_granted
 from PyMieSimX.gui.services import (
     available_measures,
@@ -194,6 +195,21 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _route_pages(pathname: str | None, search: str | None, home_visits: int, experiment_runs: int, single_runs: int, theme_store: dict | None, plot_settings: dict | None):
         """Render only the selected route page inside the persistent shell."""
         route = pathname or "/"
+        try:
+            setup = read_simulation(search, route)
+            share_message = "Shared setup loaded. This simulation runs automatically." if setup else None
+        except ValueError as error:
+            setup = None
+            share_message = str(error)
+        plot_settings = shared_plot_settings(plot_settings, setup)
+
+        def simulation_page(page):
+            from dash import html
+            restore_controls(page, setup)
+            if share_message:
+                page.children.insert(0, html.Div(share_message, role="status", className="simulation-link-notice"))
+            return build_page_with_footer(page)
+
         active = {
             "home": "sidebar-link",
             "experiment": "sidebar-link",
@@ -233,13 +249,13 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/single":
             active["single"] += " active"
-            return build_page_with_footer(build_single_page((plot_settings or {}).get("particle_explorer", {}))), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_single_page((plot_settings or {}).get("particle_explorer", {}), setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/population":
             active["population"] += " active"
-            return build_page_with_footer(build_population_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_population_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         if route == "/experiment":
             active["experiment"] += " active"
-            return build_page_with_footer(build_experiment_page(default_measure_options, plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_experiment_page(default_measure_options, plot_settings or {}, setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
         active["home"] += " active"
         return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
 
@@ -292,9 +308,12 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("plot-experiment-legend", "value", allow_optional=True),
         Input("plot-experiment-grid", "value", allow_optional=True),
         State("plot-settings-store", "data"),
+        State("url", "search"),
+        State("url", "pathname"),
     )
     def _sync_plot_settings(*values):
-        stored_settings = values[-1] or {}
+        search, path = values[-2:]
+        stored_settings = shared_plot_settings(values[-3], shared_setup(search, path))
         particle_values = values[:9]
         sweep_values = values[9:18]
         single_local_values = values[18:24]
@@ -387,28 +406,43 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
 
         return classes, errors
 
-    @app.callback(Output("source-fields", "children"), Input("source-type", "value"))
-    def _render_source_fields(source_type: str):
+    @app.callback(Output("source-fields", "children"), Input("source-type", "value"), State("url", "search"))
+    def _render_source_fields(source_type: str, search: str = ""):
         LOGGER.debug("Rendering source fields for %s", source_type)
-        return render_fields("source", source_type)
+        setup = shared_setup(search, "/experiment")
+        if setup and setup["controls"].get("source-type") != source_type:
+            setup = None
+        return restore_controls(render_fields("source", source_type), setup)
 
-    @app.callback(Output("scatterer-fields", "children"), Input("scatterer-type", "value"))
-    def _render_scatterer_fields(scatterer_type: str):
+    @app.callback(Output("scatterer-fields", "children"), Input("scatterer-type", "value"), State("url", "search"))
+    def _render_scatterer_fields(scatterer_type: str, search: str = ""):
         LOGGER.debug("Rendering scatterer fields for %s", scatterer_type)
-        return render_fields("scatterer", scatterer_type)
+        setup = shared_setup(search, "/experiment")
+        if setup and setup["controls"].get("scatterer-type") != scatterer_type:
+            setup = None
+        return restore_controls(render_fields("scatterer", scatterer_type), setup)
 
-    @app.callback(Output("detector-fields", "children"), Input("detector-type", "value"))
-    def _render_detector_fields(detector_type: str):
+    @app.callback(Output("detector-fields", "children"), Input("detector-type", "value"), State("url", "search"))
+    def _render_detector_fields(detector_type: str, search: str = ""):
         LOGGER.debug("Rendering detector fields for %s", detector_type)
-        return render_fields("detector", detector_type)
+        setup = shared_setup(search, "/experiment")
+        if setup and setup["controls"].get("detector-type") != detector_type:
+            setup = None
+        return restore_controls(render_fields("detector", detector_type), setup)
 
-    @app.callback(Output("single-source-fields", "children"), Input("single-source-type", "value"))
-    def _render_single_source_fields(source_type: str):
-        return render_fields("single-source", source_type)
+    @app.callback(Output("single-source-fields", "children"), Input("single-source-type", "value"), State("url", "search"))
+    def _render_single_source_fields(source_type: str, search: str = ""):
+        setup = shared_setup(search, "/single")
+        if setup and setup["controls"].get("single-source-type") != source_type:
+            setup = None
+        return restore_controls(render_fields("single-source", source_type), setup)
 
-    @app.callback(Output("single-scatterer-fields", "children"), Input("single-scatterer-type", "value"))
-    def _render_single_scatterer_fields(scatterer_type: str):
-        return render_fields("single-scatterer", scatterer_type)
+    @app.callback(Output("single-scatterer-fields", "children"), Input("single-scatterer-type", "value"), State("url", "search"))
+    def _render_single_scatterer_fields(scatterer_type: str, search: str = ""):
+        setup = shared_setup(search, "/single")
+        if setup and setup["controls"].get("single-scatterer-type") != scatterer_type:
+            setup = None
+        return restore_controls(render_fields("single-scatterer", scatterer_type), setup)
 
     @app.callback(
         Output({"kind": "material-toggle", "section": MATCH, "name": MATCH}, "className"),
@@ -478,6 +512,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input({"kind": "field", "section": "detector", "name": ALL}, "value"),
         Input({"kind": "field", "section": "detector", "name": ALL}, "id"),
         State("x-axis-select", "value"),
+        State("url", "search"),
     )
     def _update_x_axis_options(
         source_type: str,
@@ -490,6 +525,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         detector_values: list[str],
         detector_ids: list[dict[str, str]],
         current_x_axis: str | None,
+        search: str = "",
     ):
         LOGGER.debug(
             "Updating x-axis options from form state source=%s scatterer=%s detector=%s current=%s",
@@ -509,6 +545,16 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         )
 
         options = [{"label": field_name, "value": field_name} for field_name in variable_fields]
+        setup = shared_setup(search, "/experiment")
+        if setup:
+            desired_axis = setup["controls"].get("x-axis-select")
+            complete = (len(source_ids) == len(SOURCE_FIELDS[source_type])
+                        and len(scatterer_ids) == len(SCATTERER_FIELDS[scatterer_type])
+                        and len(detector_ids) == len(DETECTOR_FIELDS[detector_type]))
+            if current_x_axis is None or current_x_axis == desired_axis:
+                current_x_axis = desired_axis
+                if not complete:
+                    return options, current_x_axis
         value = current_x_axis if current_x_axis in variable_fields else (variable_fields[0] if variable_fields else None)
         return options, value
 
@@ -835,12 +881,25 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("single-representation", "value"),
         Input("single-projection", "value"),
         State("plot-settings-store", "data"),
+        State("url", "search"),
+        State("plot-single-x-scale", "value", allow_optional=True),
+        State("plot-single-y-scale", "value", allow_optional=True),
+        State("plot-single-font-size", "value", allow_optional=True),
+        State("plot-single-line-width", "value", allow_optional=True),
+        State("plot-single-legend", "value", allow_optional=True),
+        State("plot-single-grid", "value", allow_optional=True),
     )
-    def _update_single_plot_options(representation: str, projection: str, plot_settings: dict | None):
+    def _update_single_plot_options(representation: str, projection: str, plot_settings: dict | None, search: str = "", *local_values):
+        setup = shared_setup(search, "/single")
+        plot_settings = shared_plot_settings(plot_settings, setup)
         particle_settings = (plot_settings or {}).get("particle_explorer", plot_settings or {})
+        particle_settings = _merge_local_plot_values(particle_settings, local_values)
         from PyMieSimX.gui.layout import _plot_options_card
 
-        return _plot_options_card("single", particle_settings, representation, projection)
+        card = _plot_options_card("single", particle_settings, representation, projection)
+        if setup:
+            restore_controls(card, {**setup, "controls": {}})
+        return card
 
     @app.callback(
         Output("experiment-plot-options-container", "children"),
@@ -848,22 +907,38 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Input("experiment-result", "data"),
         State("plot-settings-store", "data"),
         State("plot-experiment-projection", "value", allow_optional=True),
+        State("url", "search"),
+        State("plot-experiment-x-scale", "value", allow_optional=True),
+        State("plot-experiment-y-scale", "value", allow_optional=True),
+        State("plot-experiment-font-size", "value", allow_optional=True),
+        State("plot-experiment-line-width", "value", allow_optional=True),
+        State("plot-experiment-legend", "value", allow_optional=True),
+        State("plot-experiment-grid", "value", allow_optional=True),
     )
-    def _update_experiment_plot_options(x_axis: str | None, result: dict | None, plot_settings: dict | None, current_projection: str | None):
+    def _update_experiment_plot_options(x_axis: str | None, result: dict | None, plot_settings: dict | None, current_projection: str | None, search: str = "", *local_values):
+        setup = shared_setup(search, "/experiment")
+        plot_settings = shared_plot_settings(plot_settings, setup)
         sweep_settings = (plot_settings or {}).get("parameter_sweep", plot_settings or {})
         units = (result or {}).get("units", {})
         xaxis_unit = units.get(x_axis)
         if xaxis_unit is None and x_axis:
             matching_units = [value for key, value in units.items() if key.rsplit(":", 1)[-1] == x_axis]
             xaxis_unit = matching_units[0] if matching_units else None
+        if xaxis_unit is None and x_axis:
+            xaxis_unit = next((str(spec.unit) for group in (SOURCE_FIELDS, SCATTERER_FIELDS, DETECTOR_FIELDS)
+                              for specs in group.values() for spec in specs if spec.name == x_axis and spec.unit is not None), None)
         is_angle = _is_angular_unit(xaxis_unit)
         options = [{"label": "Cartesian", "value": "cartesian"}]
         if is_angle:
             options.append({"label": "Polar", "value": "polar"})
         projection = current_projection if is_angle and current_projection == "polar" else "cartesian"
+        sweep_settings = _merge_local_plot_values(sweep_settings, local_values)
         from PyMieSimX.gui.layout import _plot_options_card
 
-        return _plot_options_card("experiment", sweep_settings, projection=projection, projection_options=options)
+        card = _plot_options_card("experiment", sweep_settings, projection=projection, projection_options=options)
+        if setup:
+            restore_controls(card, {**setup, "controls": {}})
+        return card
 
     @app.callback(
         Output("single-graph", "figure"),
@@ -893,6 +968,8 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _toggle_single_actions(result: dict | None):
         """Keep Export CSV greyed out until Run has produced a result."""
         return not result
+
+    register_sharing_callbacks(app)
 
 
 def build_single_empty_figure(plot_settings: dict | None = None, theme: str = "light"):

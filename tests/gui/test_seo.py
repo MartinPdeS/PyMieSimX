@@ -16,11 +16,14 @@ class HeadParser(HTMLParser):
         self.in_title = False
         self.titles = []
         self.descriptions = []
+        self.canonicals = []
 
     def handle_starttag(self, tag, attrs):
         if tag == "title":
             self.in_title = True
         attributes = dict(attrs)
+        if tag == "link" and attributes.get("rel") == "canonical":
+            self.canonicals.append(attributes.get("href"))
         if tag == "meta" and attributes.get("name") == "description":
             self.descriptions.append(attributes.get("content"))
 
@@ -55,3 +58,10 @@ def test_query_parameters_do_not_leak_into_head_metadata(client):
     assert parser.titles == [PAGE_METADATA["/single"]["title"]]
     assert parser.descriptions == [PAGE_METADATA["/single"]["description"]]
 
+
+
+def test_shared_configuration_keeps_existing_page_canonical(client):
+    response = client.get("/experiment?simulation=some-configuration")
+    parser = HeadParser()
+    parser.feed(response.get_data(as_text=True))
+    assert parser.canonicals == ["http://localhost/experiment"]

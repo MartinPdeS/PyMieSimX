@@ -6,6 +6,14 @@ from collections.abc import Sequence
 from dash import html
 
 
+def workspace_header(title: str, description: str):
+    """Build the same compact introduction card for each simulation workspace."""
+    return html.Section(className="page-hero workspace-header", children=[
+        html.P(title, className="eyebrow"),
+        html.P(description, className="hero-text workspace-intro"),
+    ])
+
+
 class Card:
     """Build a RosettaX-style card with an optional colored left accent."""
 

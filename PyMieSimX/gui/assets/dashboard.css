@@ -4061,3 +4061,25 @@ html .single-workspace .representation-card {
     font-size: .86rem;
     line-height: 1.6;
 }
+
+.single-tab-content, .experiment-tab-content, .population-page { gap: 12px; }
+.page-hero.workspace-header {
+    box-sizing: border-box;
+    min-height: 76px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+.workspace-header .hero-text { max-width: none; line-height: 1.6; min-height: 2lh; }
+@media (max-width: 700px) {
+    .page-hero.workspace-header { min-height: 148px; }
+    .workspace-header .eyebrow { min-height: 2lh; }
+    .workspace-header .hero-text { min-height: 4lh; }
+}
+
+.simulation-share-feedback { display: grid; gap: 8px; font-size: .86rem; color: var(--muted); }
+.simulation-share-actions { display: contents; }
+.simulation-share-feedback:empty { display: none; }
+.simulation-share-feedback .field-input { width: 100%; min-width: 0; }
+.simulation-link-notice { padding: 10px 14px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); }

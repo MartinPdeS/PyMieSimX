@@ -4,10 +4,13 @@ import logging
 
 from dash import Input, Output, State, dcc, html, no_update
 from dash.exceptions import PreventUpdate
+
+from PyMieSimX.gui.sharing import sharing_controls, sharing_feedback, shared_setup
 import plotly.graph_objects as go
 import numpy as np
 
 from PyMieSimX.gui.components import Card
+from PyMieSimX.gui.components.cards import workspace_header
 from PyMieSimX.gui.layout import build_tabbed_sidebar, render_field
 from PyMieSimX.gui.material_catalog import material_dropdown_options
 from PyMieSimX.gui.schemas import POPULATION_OPTICAL_FIELDS
@@ -91,19 +94,18 @@ def build_population_page():
     return html.Div(className="page-content-stack population-page", children=[
         dcc.Store(id="population-result"), dcc.Download(id="population-download"),
         dcc.Store(id="population-right-sidebar-active", data=None),
-        html.Section(className="page-hero", children=[
-            html.P("From particles to population properties", className="eyebrow"),
-            html.P("Define particle properties, size distribution, and concentration in the side panels, then compute all optical properties at one wavelength.", className="hero-text"),
-        ]),
+        workspace_header("From particles to population properties", "Define particle properties, size distribution, and concentration in the side panels, then compute all optical properties at one wavelength."),
         html.Section(className="population-workspace", children=[
             html.Div(className="result-column population-output", children=[
                 html.Div(className="graph-toolbar", children=[
-                    html.Button(_compute_label("Compute"), id="population-compute", n_clicks=0,
+                    html.Button(_compute_label("Run"), id="population-compute", n_clicks=0,
                                 className="toolbar-button toolbar-button-primary"),
                     html.Button([html.Span("⤓", className="toolbar-button-icon", **{"aria-hidden": "true"}), "Export CSV"],
                                 id="population-export", disabled=True, className="toolbar-button toolbar-button-secondary"),
+                    sharing_controls("/population"),
                 ]),
-                html.Div(id="population-status", role="status", children="Ready. Click Compute to calculate all properties."),
+                sharing_feedback(),
+                html.Div(id="population-status", role="status", children="Ready. Click Run to calculate all properties."),
                 _panel("Distribution preview", [
                     dcc.Graph(id="population-preview", config={"displaylogo": False}),
                     html.Div(id="population-preview-error", role="status"),
@@ -138,20 +140,28 @@ def register_population_callbacks(app):
         Output("population-minimum-field", "style"), Output("population-maximum-field", "style"),
         Output("population-sampling-field", "style"), Output("population-width", "value"),
         Input("population-distribution", "value"),
+        State("url", "search"),
     )
-    def _population_distribution_controls(distribution):
+    def _population_distribution_controls(distribution, search=""):
+        from dash import ctx
+        setup = shared_setup(search, "/population")
+        width = (setup or {}).get("controls", {}).get("population-width") if setup and not ctx.triggered else None
         hidden = {"display": "none"}
         diameter_label = {"monodisperse": "Diameter [nm]", "gaussian": "Gaussian mean diameter [nm]"}.get(distribution, "Geometric median diameter [nm]")
         return (diameter_label, "Standard deviation [nm]" if distribution == "gaussian" else "Geometric standard deviation",
                 hidden if distribution == "uniform" else {}, {} if distribution in {"gaussian", "lognormal"} else hidden,
                 {} if distribution in {"gaussian", "uniform"} else hidden,
                 {} if distribution in {"gaussian", "uniform"} else hidden,
-                hidden if distribution == "monodisperse" else {}, "50" if distribution == "gaussian" else "1.2")
+                hidden if distribution == "monodisperse" else {}, width if width is not None else "50" if distribution == "gaussian" else "1.2")
 
     @app.callback(Output("population-concentration-label", "children"), Output("population-concentration", "value"),
-                  Input("population-concentration-basis", "value"))
-    def _population_concentration_controls(basis):
-        return ("Particle volume fraction [0–1]", "0.001") if basis == "volume" else ("Number concentration [particles/mL]", "1e9")
+                  Input("population-concentration-basis", "value"), State("url", "search"))
+    def _population_concentration_controls(basis, search=""):
+        from dash import ctx
+        setup = shared_setup(search, "/population")
+        concentration = (setup or {}).get("controls", {}).get("population-concentration") if setup and not ctx.triggered else None
+        label, default = ("Particle volume fraction [0–1]", "0.001") if basis == "volume" else ("Number concentration [particles/mL]", "1e9")
+        return label, concentration if concentration is not None else default
 
     @app.callback(Output("population-preview", "figure"), Output("population-preview-error", "children"),
                   *[Input(f"population-{name}", "value") for name in ("distribution", "diameter", "width", "minimum", "maximum", "sampling")],
@@ -183,7 +193,7 @@ def register_population_callbacks(app):
                   Input("population-compute", "n_clicks"), *[State(_control_id(name), "value") for name in FIELDS],
                   prevent_initial_call=True, running=[
                       (Output("population-compute", "disabled"), True, False),
-                      (Output("population-compute", "children"), _compute_label("Computing…"), _compute_label("Compute")),
+                      (Output("population-compute", "children"), _compute_label("Running…"), _compute_label("Run")),
                       *[(Output(_control_id(name), "disabled"), True, False) for name in FIELDS],
                       *[(Output({"kind": kind, "section": "population", "name": name}, "disabled"),
                          True, not material_dropdown_options(medium=name == "medium"))
@@ -211,7 +221,7 @@ def register_population_callbacks(app):
                   Output("population-export", "disabled", allow_duplicate=True),
                   *[Input(_control_id(name), "value") for name in FIELDS], prevent_initial_call=True)
     def _invalidate_population(*values):
-        return None, [], "Ready. Click Compute to calculate all properties.", True
+        return None, [], "Ready. Click Run to calculate all properties.", True
 
     @app.callback(Output("population-download", "data"), Input("population-export", "n_clicks"),
                   State("population-result", "data"), prevent_initial_call=True)

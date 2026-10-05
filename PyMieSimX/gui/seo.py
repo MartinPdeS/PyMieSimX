@@ -63,6 +63,8 @@ class SearchDash(Dash):
         metadata = PAGE_METADATA.get(path, PAGE_METADATA["/"])
         kwargs["title"] = escape(metadata["title"])
         kwargs["metas"] += f'<meta name="description" content="{escape(metadata["description"], quote=True)}">'
+        if has_request_context() and path in PAGE_METADATA:
+            kwargs["metas"] += f'<link rel="canonical" href="{escape(request.base_url, quote=True)}">'
         return super().interpolate_index(**kwargs)
 
 
@@ -80,6 +82,8 @@ def register_page_metadata(application: Dash) -> None:
                 document.head.appendChild(description);
             }
             description.content = metadata.description;
+            const canonical = document.head.querySelector('link[rel="canonical"]');
+            if (canonical) canonical.href = window.location.origin + (pathname || '/');
             return pathname || '/';
         }""",
         Output("page-metadata", "data"),

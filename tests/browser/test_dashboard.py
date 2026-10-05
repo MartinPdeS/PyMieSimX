@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 from io import StringIO
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support.ui import WebDriverWait
 
 from PyMieSimX.gui.interface import create_dash_app
@@ -30,6 +31,34 @@ def _wait_for_sidebar_transition(dash_duo, sidebar_id="experiment-right-sidebar"
             ".every(animation => animation.playState !== 'running')", sidebar_id,
         )
     )
+
+
+@pytest.mark.parametrize("viewport", [(1440, 1000), (1280, 900), (390, 844), (320, 740)],
+                         ids=["desktop", "compact-desktop", "mobile", "small-mobile"])
+def test_workspace_cards_and_action_buttons_align_across_pages(dash_duo, viewport):
+    dash_duo.driver.set_window_size(*viewport)
+    dash_duo.start_server(create_dash_app())
+    geometries = []
+    for route in ("single", "experiment", "population"):
+        dash_duo.driver.get(dash_duo.server_url + "/" + route)
+        dash_duo.wait_for_element(".workspace-header")
+        dash_duo.wait_for_element("#simulation-clipboard")
+        geometry = WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.execute_script(
+            "if (document.fonts.status !== 'loaded') return null;"
+            "const card = document.querySelector('.workspace-header').getBoundingClientRect();"
+            "const buttons = Array.from(document.querySelectorAll('.graph-toolbar .toolbar-button'))"
+            ".filter(button => getComputedStyle(button).display !== 'none');"
+            "return {top: card.top, height: card.height, bottom: card.bottom,"
+            "buttons: buttons.map(button => button.getBoundingClientRect().top)};"
+        ))
+        assert len(geometry["buttons"]) == 3
+        assert min(geometry["buttons"]) >= geometry["bottom"]
+        geometries.append(geometry)
+    for geometry in geometries[1:]:
+        assert geometry["top"] == pytest.approx(geometries[0]["top"], abs=1)
+        assert geometry["height"] == pytest.approx(geometries[0]["height"], abs=1)
+        assert geometry["buttons"] == pytest.approx(geometries[0]["buttons"], abs=1)
+    assert dash_duo.get_logs() == []
 
 
 def test_page_metadata_tracks_navigation_and_direct_visits(dash_duo):
@@ -128,7 +157,10 @@ def test_navigation_validation_execution_plot_and_export_controls(dash_duo, view
     _wait_for_sidebar_transition(dash_duo)
     for measure in ("Qabs", "Qext"):
         dash_duo.select_dcc_dropdown("#measure-select", measure)
-        dash_duo.find_element(".graph-axis-title").click()
+        dash_duo.driver.switch_to.active_element.send_keys(Keys.ESCAPE)
+        WebDriverWait(dash_duo.driver, 10).until(lambda driver: not any(
+            option.is_displayed() for option in driver.find_elements("css selector", "#measure-select [role='option']")
+        ))
     dash_duo.find_element("#run-experiment-button").click()
     dash_duo.wait_for_element("#experiment-run-status .status-banner.success", timeout=30)
     assert "6 result rows" in dash_duo.find_element("#experiment-run-status").text
@@ -391,4 +423,227 @@ def test_ensemble_optical_material_toggles_preserve_ri_and_compute_named_materia
     WebDriverWait(dash_duo.driver, 10).until(lambda driver: dash_duo.find_element("#population-material-field input").get_attribute("value") == "1.6+0.02j")
     dash_duo.wait_for_no_elements("#population-results tbody tr")
     assert dash_duo.find_element("#population-export").get_attribute("disabled")
+    assert dash_duo.get_logs() == []
+
+
+def _shared_url(dash_duo, path, controls, plot_settings=None):
+    from urllib.parse import urlencode
+    from PyMieSimX.gui.sharing import encode_simulation
+    token = encode_simulation({"v": 1, "page": path, "controls": controls, "plot_settings": plot_settings or {}})
+    return dash_duo.server_url + path + "?" + urlencode({"simulation": token})
+
+
+def _shared_field_id(section, name):
+    from PyMieSimX.gui.sharing import control_key
+    return control_key({"kind": "field", "section": section, "name": name})
+
+
+def _copy_shared_link(dash_duo):
+    dash_duo.driver.execute_cdp_cmd("Browser.grantPermissions", {
+        "origin": dash_duo.server_url, "permissions": ["clipboardReadWrite", "clipboardSanitizedWrite"],
+    })
+    clipboard = dash_duo.find_element("#simulation-clipboard")
+    dash_duo.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", clipboard)
+    WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.execute_script(
+        "const element = arguments[0], rect = element.getBoundingClientRect();"
+        "const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);"
+        "return hit === element || element.contains(hit);", clipboard,
+    ))
+    clipboard.click()
+    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "Link copied")
+    link = dash_duo.driver.execute_async_script(
+        "const done = arguments[0]; navigator.clipboard.readText().then(done, error => done(String(error)));"
+    )
+    assert link.startswith(dash_duo.server_url + "/")
+    assert "?simulation=" in link
+    assert not dash_duo.driver.find_elements("css selector", "#simulation-share-link")
+    assert not dash_duo.find_element("#simulation-share-feedback").is_displayed()
+    return link
+
+
+@pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])
+def test_shared_sweep_restores_saved_inputs_and_runs_once(dash_duo, viewport, isolated_experiment_jobs, monkeypatch):
+    from urllib.parse import urlsplit
+    from PyMieSimX.gui.sharing import read_simulation
+    dash_duo.driver.set_window_size(*viewport)
+    submitted = []
+    original_submit = isolated_experiment_jobs.submit
+
+    def record_submit(**kwargs):
+        submitted.append(kwargs)
+        return original_submit(**kwargs)
+
+    monkeypatch.setattr(isolated_experiment_jobs, "submit", record_submit)
+    dash_duo.start_server(create_dash_app())
+    controls = {
+        "source-type": "PlaneWaveSet", "scatterer-type": "SphereSet", "detector-type": "None",
+        "measure-select": ["Qsca", "Qext"], "x-axis-select": "diameter",
+        _shared_field_id("source", "wavelength"): "600:700:3",
+        _shared_field_id("scatterer", "diameter"): "80,120",
+        _shared_field_id("scatterer", "material"): "main/SiO2/Malitson",
+        "plot-experiment-font-size": 22, "plot-experiment-grid": False,
+    }
+    link = _shared_url(dash_duo, "/experiment", controls, {"font_size": 22, "show_grid": False, "template": "plotly_dark"})
+    dash_duo.driver.get(link)
+    dash_duo.wait_for_element(".simulation-link-notice")
+    WebDriverWait(dash_duo.driver, 30).until(lambda _: dash_duo.find_element("#export-csv").is_enabled())
+    WebDriverWait(dash_duo.driver, 10).until(lambda driver: "diameter" in dash_duo.find_element("#x-axis-select").text)
+    assert "Qsca" in dash_duo.find_element("#measure-select").text
+    assert "Qext" in dash_duo.find_element("#measure-select").text
+    assert len(submitted) == 1
+    assert submitted[0]["source_values"]["wavelength"] == "600:700:3"
+    assert submitted[0]["scatterer_values"]["diameter"] == "80,120"
+    assert submitted[0]["measure"] == ["Qsca", "Qext"]
+    copied_link = _copy_shared_link(dash_duo)
+    restored = read_simulation(urlsplit(copied_link).query, "/experiment")
+    assert restored["controls"].items() >= controls.items()
+    assert restored["plot_settings"]["template"] == "plotly_dark"
+    # Save a conflicting ordinary-session preference, then reopen the link.
+    dash_duo.driver.get(dash_duo.server_url + "/experiment")
+    dash_duo.wait_for_element("#experiment-tab-source").click()
+    dash_duo.wait_for_contains_class("#experiment-right-sidebar", "open")
+    _wait_for_sidebar_transition(dash_duo)
+    field = dash_duo.driver.find_element("xpath", "//input[@id='" + _shared_field_id("source", "wavelength") + "']")
+    field.clear()
+    field.send_keys("777", Keys.TAB)
+    WebDriverWait(dash_duo.driver, 10).until(lambda driver: field.get_attribute("value") == "777")
+    dash_duo.driver.get(copied_link)
+    dash_duo.wait_for_element("#simulation-clipboard")
+    copied_again = _copy_shared_link(dash_duo)
+    again = read_simulation(urlsplit(copied_again).query, "/experiment")
+    assert again["controls"][_shared_field_id("source", "wavelength")] == "600:700:3"
+    assert again["controls"]["measure-select"] == ["Qsca", "Qext"]
+    assert dash_duo.driver.execute_script("return document.documentElement.scrollWidth <= window.innerWidth")
+    WebDriverWait(dash_duo.driver, 30).until(lambda _: dash_duo.find_element("#export-csv").is_enabled())
+    assert len(submitted) == 2
+    assert dash_duo.get_logs() == []
+
+
+def test_shared_single_setup_runs_once_with_restored_projection_and_remains_editable(dash_duo, monkeypatch):
+    from urllib.parse import urlsplit
+    from PyMieSimX.gui.sharing import read_simulation
+    dash_duo.driver.set_window_size(1440, 1000)
+    from PyMieSimX.gui import callbacks
+    runs = []
+    original_run = callbacks.execute_single_callback
+
+    def record_run(**kwargs):
+        runs.append(kwargs)
+        return original_run(**kwargs)
+
+    monkeypatch.setattr(callbacks, "execute_single_callback", record_run)
+    dash_duo.start_server(create_dash_app())
+    controls = {"single-source-type": "PlaneWave", "single-scatterer-type": "Sphere",
+                "single-representation": "s1s2", "single-projection": "polar_1d", "single-sampling": "24",
+                _shared_field_id("single-scatterer", "diameter"): "180",
+                _shared_field_id("single-scatterer", "material"): "1.47+0.02j",
+                "plot-single-font-size": 21, "plot-single-grid": False}
+    dash_duo.driver.get(_shared_url(dash_duo, "/single", controls, {"font_size": 21, "show_grid": False}))
+    dash_duo.wait_for_element(".simulation-link-notice")
+    WebDriverWait(dash_duo.driver, 30).until(lambda _: dash_duo.find_element("#export-single-csv").is_enabled())
+    assert len(runs) == 1
+    assert runs[0]["projection"] == "polar_1d"
+    assert runs[0]["sampling"] == "24"
+    assert "180" in runs[0]["scatterer_values"]
+    copied = read_simulation(urlsplit(_copy_shared_link(dash_duo)).query, "/single")
+    assert copied["controls"].items() >= controls.items()
+    dash_duo.find_element("#single-tab-plot-options").click()
+    dash_duo.wait_for_contains_class("#single-right-sidebar", "open")
+    _wait_for_sidebar_transition(dash_duo, "single-right-sidebar")
+    font = dash_duo.find_element("#plot-single-font-size")
+    font.clear()
+    font.send_keys("25", Keys.TAB)
+    dash_duo.select_dcc_dropdown("#single-projection", "2D plot")
+    WebDriverWait(dash_duo.driver, 10, ignored_exceptions=(StaleElementReferenceException,)).until(
+        lambda _: dash_duo.find_element("#plot-single-font-size").get_attribute("value") == "25"
+    )
+    dash_duo.find_element("#single-tab-plot-options").click()
+    dash_duo.wait_for_class_to_equal("#single-right-sidebar", "right-sidebar-panel")
+    _wait_for_sidebar_transition(dash_duo, "single-right-sidebar")
+    assert len(runs) == 1
+    dash_duo.find_element("#run-single-button").click()
+    WebDriverWait(dash_duo.driver, 30).until(lambda _: len(runs) == 2 and dash_duo.find_element("#run-single-button").is_enabled())
+    assert dash_duo.find_element("#export-single-csv").is_enabled()
+    assert len(runs) == 2
+    assert dash_duo.get_logs() == []
+
+
+def test_shared_population_runs_with_restored_values_and_invalid_link_recovers(dash_duo, monkeypatch):
+    from urllib.parse import urlsplit
+    from PyMieSimX.gui.sharing import read_simulation
+    dash_duo.driver.set_window_size(1440, 1000)
+    from PyMieSimX.gui.pages import population
+    runs = []
+    original_compute = population.compute_population_optics
+
+    def record_compute(**kwargs):
+        runs.append(kwargs)
+        return original_compute(**kwargs)
+
+    monkeypatch.setattr(population, "compute_population_optics", record_compute)
+    dash_duo.start_server(create_dash_app())
+    controls = {"population-distribution": "gaussian", "population-width": "37",
+                "population-diameter": "210", "population-concentration-basis": "volume",
+                "population-concentration": "0.0023"}
+    dash_duo.driver.get(_shared_url(dash_duo, "/population", controls))
+    dash_duo.wait_for_element(".simulation-link-notice")
+    dash_duo.wait_for_text_to_equal("#population-status", "Completed. All population properties are shown below.")
+    copied = read_simulation(urlsplit(_copy_shared_link(dash_duo)).query, "/population")
+    assert copied["controls"].items() >= controls.items()
+    assert dash_duo.find_element("#population-export").is_enabled()
+    assert len(runs) == 1
+    assert runs[0]["width"] == "37"
+    assert runs[0]["concentration"] == "0.0023"
+    dash_duo.driver.get(dash_duo.server_url + "/experiment?simulation=broken")
+    dash_duo.wait_for_element(".simulation-link-notice")
+    assert "could not be read" in dash_duo.find_element(".simulation-link-notice").text
+    assert dash_duo.find_element("#run-experiment-button").is_enabled()
+    assert dash_duo.get_logs() == []
+
+
+def test_simulation_link_available_without_clipboard_api(dash_duo):
+    from urllib.parse import urlsplit
+    from PyMieSimX.gui.sharing import read_simulation
+    dash_duo.driver.set_window_size(1440, 1000)
+    dash_duo.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'clipboard', {value: undefined});",
+    })
+    dash_duo.start_server(create_dash_app())
+    dash_duo.find_element("#sidebar-link-single").click()
+    fallback = dash_duo.wait_for_element("#simulation-link-fallback")
+    WebDriverWait(dash_duo.driver, 10).until(lambda _: fallback.is_displayed())
+    fallback.click()
+    link = dash_duo.wait_for_element("#simulation-share-link").get_attribute("value")
+    assert read_simulation(urlsplit(link).query, "/single")["page"] == "/single"
+    assert not dash_duo.find_element("#export-single-csv").is_enabled()
+    logs = dash_duo.get_logs()
+    assert all(entry["level"] == "WARNING" and "clipboard" in entry["message"].lower() for entry in logs), logs
+
+
+def test_shared_auto_run_validation_error_recovers_without_repeating(dash_duo, isolated_experiment_jobs):
+    dash_duo.driver.set_window_size(1440, 1000)
+    dash_duo.start_server(create_dash_app())
+    link = _shared_url(dash_duo, "/experiment", {
+        "source-type": "PlaneWaveSet", "scatterer-type": "SphereSet", "detector-type": "None",
+        "measure-select": ["Qsca"], _shared_field_id("source", "wavelength"): "0",
+    })
+    dash_duo.driver.get(link)
+    dash_duo.wait_for_element("#experiment-run-status .status-banner.error")
+    assert "wavelength" in dash_duo.find_element("#experiment-run-status").text
+    assert dash_duo.find_element("#run-experiment-button").is_enabled()
+    assert not isolated_experiment_jobs._jobs
+    dash_duo.find_element("#experiment-tab-source").click()
+    dash_duo.wait_for_contains_class("#experiment-right-sidebar", "open")
+    _wait_for_sidebar_transition(dash_duo)
+    field = dash_duo.driver.find_element("xpath", "//input[@id='" + _shared_field_id("source", "wavelength") + "']")
+    field.clear()
+    field.send_keys("650", Keys.TAB)
+    dash_duo.wait_for_no_elements("#source-fields .field-input-invalid")
+    assert not isolated_experiment_jobs._jobs
+    dash_duo.find_element("#experiment-tab-source").click()
+    dash_duo.wait_for_class_to_equal("#experiment-right-sidebar", "right-sidebar-panel")
+    _wait_for_sidebar_transition(dash_duo)
+    dash_duo.find_element("#run-experiment-button").click()
+    WebDriverWait(dash_duo.driver, 30).until(lambda _: dash_duo.find_element("#export-csv").is_enabled())
+    assert len(isolated_experiment_jobs._jobs) == 1
     assert dash_duo.get_logs() == []
