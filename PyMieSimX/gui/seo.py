@@ -8,6 +8,10 @@ from flask import has_request_context, request
 
 
 PAGE_METADATA = {
+    "/examples": {
+        "title": "Mie Scattering Examples — Nanoparticle Resonances & More | PyMieSimX",
+        "description": "Explore six Mie scattering examples: gold and silver nanoparticle resonances, silica size sweeps, gold nanoshells, angular scattering, and suspension optics.",
+    },
     "/": {
         "title": "Mie Scattering Calculator & Mie Theory Simulator | PyMieSimX",
         "description": "Calculate Mie scattering in your browser with PyMieSimX. Explore single particles, run parameter sweeps, and export results with the PyMieSim solver.",

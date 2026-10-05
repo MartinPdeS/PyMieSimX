@@ -310,6 +310,7 @@ def _build_sidebar():
                     _sidebar_link("Single Scatterer", "/single"),
                     _sidebar_link("Parameter Scan", "/experiment"),
                     _sidebar_link("Ensemble Optics", "/population"),
+                    _sidebar_link("Examples", "/examples"),
                     _sidebar_link("Documentation", "/documentation"),
                     _sidebar_link("Settings", "/settings"),
                 ],

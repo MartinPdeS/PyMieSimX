@@ -20,6 +20,15 @@ optical setups, run parameter sweeps, explore individual particles, and download
 your results as CSV files. The hosted service provides direct access to the
 graphical interface; local installation is also available below.
 
+Examples
+--------
+
+The **Examples** page provides six starting points: gold and silver nanoparticle
+resonances, a silica size sweep, gold nanoshells, a bead's angular scattering,
+and a polydisperse silica suspension. Each card links to its simulation
+workspace, restores the complete setup, and runs automatically to show results.
+The parameters can then be adjusted and the results exported as CSV.
+
 Sharing simulations
 -------------------
 
@@ -28,8 +37,8 @@ Optics to share the current setup. Links preserve the input values, sweep
 ranges, selected measures, and plot settings without requiring an account.
 Opening a link restores the setup and automatically runs the simulation once
 the inputs and plot settings are ready. Later edits can be calculated with
-**Run**. If clipboard access is unavailable, use **Show simulation
-link** and copy the displayed URL.
+**Run**. Copying puts the link directly on the clipboard and briefly shows
+**Copied** on the button without displaying an additional card.
 
 Links store the configuration rather than a result snapshot. Recalculation
 uses the installed solver and optical material data, so results can change

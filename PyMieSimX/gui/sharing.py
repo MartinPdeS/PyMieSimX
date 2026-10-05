@@ -254,15 +254,16 @@ def restore_controls(component, setup):
 def sharing_controls(path):
     return html.Div(className="simulation-share-actions", children=[
         dcc.Store(id=f"{path.strip('/')}-auto-run", data=None),
-        dcc.Clipboard(id="simulation-clipboard", children="Copy simulation link", copied_children="Link copied",
-                      title="Copy a link to this simulation setup", className="toolbar-button toolbar-button-secondary", n_clicks=0),
-        html.Button("Show simulation link", id="simulation-link-fallback", n_clicks=0,
-                    className="toolbar-button toolbar-button-secondary", style={"display": "none"}),
+        dcc.Store(id="simulation-link"),
+        dcc.Store(id="simulation-copy-status"),
+        html.Button([
+            html.Span("Copy simulation link", className="simulation-copy-label"),
+            html.Span("Copying…", className="simulation-copy-pending-label"),
+            html.Span("✓ Copied", className="simulation-copy-success-label"),
+            html.Span("Unable to copy", className="simulation-copy-error-label"),
+        ], id="simulation-clipboard", n_clicks=0, title="Copy a link to this simulation setup",
+            className="toolbar-button toolbar-button-secondary simulation-copy-button", **{"aria-live": "polite"}),
     ])
-
-
-def sharing_feedback():
-    return html.Div(id="simulation-share-feedback", role="status", className="simulation-share-feedback")
 
 
 def register_sharing_callbacks(app):
@@ -281,11 +282,14 @@ def register_sharing_callbacks(app):
             State(button_id, "n_clicks"),
         )
     app.clientside_callback(
-        """function(pathname) {
-            return window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText
-                ? {display: 'none'} : {};
-        }""",
-        Output("simulation-link-fallback", "style"), Input("url", "pathname"),
+        ClientsideFunction(namespace="simulation_sharing", function_name="copy_link"),
+        Output("simulation-copy-status", "data"), Input("simulation-link", "data"),
+        prevent_initial_call=True,
+    )
+    app.clientside_callback(
+        ClientsideFunction(namespace="simulation_sharing", function_name="copy_feedback"),
+        Output("simulation-clipboard", "className"), Output("simulation-clipboard", "title"),
+        Input("simulation-clipboard", "n_clicks"), Input("simulation-copy-status", "data"),
     )
     @app.callback(
         Output("experiment-result", "clear_data"), Output("single-result", "clear_data"),
@@ -296,18 +300,16 @@ def register_sharing_callbacks(app):
         return clear, clear
 
     @app.callback(
-        Output("simulation-clipboard", "content"), Output("simulation-clipboard", "copied_children"),
-        Output("simulation-share-feedback", "children"),
+        Output("simulation-link", "data"),
         Input("simulation-clipboard", "n_clicks"),
-        Input("simulation-link-fallback", "n_clicks"),
         State("url", "href"), State("url", "pathname"), State("plot-settings-store", "data"),
         State({"kind": "field", "section": ALL, "name": ALL}, "id"),
         State({"kind": "field", "section": ALL, "name": ALL}, "value"),
         *[State(name, "value", allow_optional=True) for name in CAPTURE_CONTROLS],
         prevent_initial_call=True,
     )
-    def _copy_simulation_link(clicks, fallback_clicks, href, path, settings, field_ids, field_values, *values):
-        if not (clicks or fallback_clicks) or path not in WORKSPACES:
+    def _copy_simulation_link(clicks, href, path, settings, field_ids, field_values, *values):
+        if not clicks or path not in WORKSPACES:
             raise PreventUpdate
         allowed = allowed_controls(path)
         controls = {name: value for name, value in zip(CAPTURE_CONTROLS, values) if name in allowed and value is not None}
@@ -321,12 +323,8 @@ def register_sharing_callbacks(app):
         payload = {"v": 1, "page": path, "controls": controls, "plot_settings": plot}
         try:
             token = encode_simulation(payload)
-        except ValueError as error:
-            return "", "Unable to copy", str(error)
+        except ValueError:
+            return {"clicks": clicks, "url": None}
         parts = urlsplit(href)
         link = urlunsplit((parts.scheme, parts.netloc, path, urlencode({"simulation": token}), ""))
-        feedback = []
-        if fallback_clicks and not clicks:
-            feedback = [html.Label("Simulation link", htmlFor="simulation-share-link"),
-                        dcc.Input(id="simulation-share-link", value=link, readOnly=True, type="text", className="field-input")]
-        return link, "Link copied", feedback
+        return {"clicks": clicks, "url": link}

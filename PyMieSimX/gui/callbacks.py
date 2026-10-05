@@ -14,6 +14,7 @@ from PyMieSimX.gui.pages.sellmeier import build_sellmeier_page
 from PyMieSimX.gui.pages.field_syntax import build_field_syntax_page
 from PyMieSimX.gui.pages.citation import build_citation_page
 from PyMieSimX.gui.pages.home import build_home_page
+from PyMieSimX.gui.pages.examples import build_examples_page
 from PyMieSimX.gui.pages.install_local import build_install_local_page
 from PyMieSimX.gui.pages.experiment import build_experiment_page
 from PyMieSimX.gui.pages.settings import build_settings_page
@@ -182,6 +183,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("sidebar-link-single", "className"),
         Output("sidebar-link-documentation", "className"),
         Output("sidebar-link-settings", "className"),
+        Output("sidebar-link-examples", "className"),
         Output("sidebar-link-population", "className"),
         Output("home-visit-count", "data"),
         Input("url", "pathname"),
@@ -216,6 +218,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             "single": "sidebar-link",
             "documentation": "sidebar-link",
             "settings": "sidebar-link",
+            "examples": "sidebar-link",
             "population": "sidebar-link",
         }
         home_visits = _counter(home_visits)
@@ -228,36 +231,39 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 home_visits = float("nan")
         if route == "/admin":
             token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
-            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
+        if route == "/examples":
+            active["examples"] += " active"
+            return build_page_with_footer(build_examples_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/documentation":
             active["documentation"] += " active"
-            return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_documentation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/citation":
             active["home"] += " active"
-            return build_page_with_footer(build_citation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_citation_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/documentation/install-local":
             active["documentation"] += " active"
-            return build_page_with_footer(build_install_local_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_install_local_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/documentation/sellmeier":
             active["documentation"] += " active"
-            return build_page_with_footer(build_sellmeier_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_sellmeier_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/documentation/field-syntax":
             active["documentation"] += " active"
-            return build_page_with_footer(build_field_syntax_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_field_syntax_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/settings":
             active["settings"] += " active"
-            return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return build_page_with_footer(build_settings_page((theme_store or {}).get("theme", "light"), plot_settings or {})), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/single":
             active["single"] += " active"
-            return simulation_page(build_single_page((plot_settings or {}).get("particle_explorer", {}), setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_single_page((plot_settings or {}).get("particle_explorer", {}), setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/population":
             active["population"] += " active"
-            return simulation_page(build_population_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_population_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/experiment":
             active["experiment"] += " active"
-            return simulation_page(build_experiment_page(default_measure_options, plot_settings or {}, setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+            return simulation_page(build_experiment_page(default_measure_options, plot_settings or {}, setup)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         active["home"] += " active"
-        return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "population")), home_visits
+        return build_page_with_footer(build_home_page(home_visits=home_visits)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
 
     @app.callback(
         Output("admin-home-page-visits", "children"),

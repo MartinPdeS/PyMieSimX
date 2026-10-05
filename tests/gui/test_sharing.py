@@ -99,27 +99,23 @@ def test_material_mode_and_raw_input_restore_together(material):
         assert store.data == "gold"
 
 
-@pytest.mark.parametrize("manual_copy", [False, True])
-def test_copy_callback_builds_portable_link_without_query_tokens_or_results(manual_copy):
+def test_copy_callback_builds_portable_link_without_query_tokens_or_results():
     payload = sweep_payload()
     field_ids = [{"kind": "field", "section": "source", "name": "wavelength"}]
     inputs = [payload["controls"].get(name) for name in CAPTURE_CONTROLS]
     app = create_dash_app()
-    link, copied_label, feedback = callback(app, "_copy_simulation_link")(
-        int(not manual_copy), int(manual_copy), "https://example.org/experiment?token=private#old", "/experiment",
+    copied = callback(app, "_copy_simulation_link")(
+        1, "https://example.org/experiment?token=private#old", "/experiment",
         {"parameter_sweep": payload["plot_settings"]}, field_ids, ["600:700:3"], *inputs,
     )
+    link = copied["url"]
+    assert copied["clicks"] == 1
     assert "private" not in link
     assert urlsplit(link).fragment == ""
     restored = read_simulation(urlsplit(link).query, "/experiment")
     assert restored["controls"]["measure-select"] == ["Qsca", "Qext"]
     assert restored["controls"][field_key("source", "wavelength")] == "600:700:3"
     assert set(restored) == {"v", "page", "controls", "plot_settings"}
-    if manual_copy:
-        assert feedback[-1].value == link
-    else:
-        assert feedback == []
-    assert copied_label == "Link copied"
 
 
 def test_route_restores_controls_and_arms_run_after_restoration():
@@ -162,10 +158,8 @@ def test_shared_navigation_clears_previous_results():
 
 def test_copy_reports_oversized_setup_without_claiming_success():
     key = {"kind": "field", "section": "source", "name": "wavelength"}
-    content, label, feedback = callback(create_dash_app(), "_copy_simulation_link")(
-        1, 0, "https://example.org/experiment", "/experiment", {}, [key], ["1," * MAX_PAYLOAD_BYTES],
+    copied = callback(create_dash_app(), "_copy_simulation_link")(
+        1, "https://example.org/experiment", "/experiment", {}, [key], ["1," * MAX_PAYLOAD_BYTES],
         *[None for _ in CAPTURE_CONTROLS],
     )
-    assert content == ""
-    assert label == "Unable to copy"
-    assert "too large" in feedback
+    assert copied == {"clicks": 1, "url": None}

@@ -3,7 +3,7 @@
 
 from dash import dcc, html
 
-from PyMieSimX.gui.sharing import sharing_controls, sharing_feedback
+from PyMieSimX.gui.sharing import sharing_controls
 from PyMieSimX.gui.components.cards import workspace_header
 
 from PyMieSimX.gui.callback_helpers import status_banner
@@ -56,7 +56,6 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
                                 className="experiment-run-feedback",
                                 children=status_banner("idle", "Ready. Click Run to start a sweep."),
                             ),
-                            sharing_feedback(),
                             _x_axis_card(default_measure_options),
                             html.Section(className="panel graph-panel", children=[dcc.Loading(id="result-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=dcc.Graph(id="result-graph", config=PLOT_CONFIG))]),
                         ],

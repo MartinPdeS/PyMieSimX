@@ -2,7 +2,7 @@
 
 from dash import dcc, html
 
-from PyMieSimX.gui.sharing import sharing_controls, sharing_feedback
+from PyMieSimX.gui.sharing import sharing_controls
 from PyMieSimX.gui.components.cards import workspace_header
 
 from PyMieSimX.gui.defaults import DEFAULT_WORKSPACE_SETTINGS
@@ -47,7 +47,6 @@ def build_single_page(plot_settings: dict | None = None, simulation: dict | None
                                     sharing_controls("/single"),
                                 ],
                             ),
-                            sharing_feedback(),
                             build_representation_section(),
                             html.Section(className="panel graph-panel single-graph-panel", children=[dcc.Loading(id="single-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=dcc.Graph(id="single-graph", config=PLOT_CONFIG))]),
                         ],

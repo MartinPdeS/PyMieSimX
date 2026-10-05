@@ -91,6 +91,43 @@ def test_page_metadata_tracks_navigation_and_direct_visits(dash_duo):
 
 
 @pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])
+def test_examples_cards_open_all_six_simulations_and_run_automatically(dash_duo, viewport):
+    from PyMieSimX.gui.pages.examples import EXAMPLES
+    dash_duo.driver.set_window_size(*viewport)
+    dash_duo.start_server(create_dash_app())
+    dash_duo.find_element("#sidebar-link-examples").click()
+    dash_duo.wait_for_text_to_equal(".examples-page h1", "Examples")
+    assert len(dash_duo.find_elements(".example-card")) == 6
+    dash_duo.wait_for_contains_class("#sidebar-link-examples", "active")
+    WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.title == PAGE_METADATA["/examples"]["title"])
+    assert dash_duo.driver.execute_script("return document.documentElement.scrollWidth <= window.innerWidth;")
+    for example in EXAMPLES:
+        dash_duo.driver.get(dash_duo.server_url + "/examples")
+        link = dash_duo.wait_for_element(f"#example-{example['id']} .example-open")
+        dash_duo.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", link)
+        WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.execute_script(
+            "if (document.fonts.status !== 'loaded') return false;"
+            "const element = arguments[0], rect = element.getBoundingClientRect();"
+            "const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);"
+            "return hit === element || element.contains(hit);", link,
+        ))
+        link.click()
+        path = example["setup"]["page"]
+        export_id = {"/experiment": "export-csv", "/single": "export-single-csv", "/population": "population-export"}[path]
+        WebDriverWait(dash_duo.driver, 30).until(lambda driver: driver.find_element("id", export_id).is_enabled())
+        assert dash_duo.driver.current_url.startswith(dash_duo.server_url + path + "?simulation=")
+        if path == "/population":
+            assert "mu_s" in dash_duo.find_element("#population-results").text
+        else:
+            graph_id = "result-graph" if path == "/experiment" else "single-graph"
+            WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.execute_script(
+                "const graph = document.querySelector('#' + arguments[0] + ' .js-plotly-plot');"
+                "return graph && graph.data && graph.data.length > 0;", graph_id,
+            ))
+    assert dash_duo.get_logs() == []
+
+
+@pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])
 def test_home_star_button_below_support_developer(dash_duo, viewport):
     dash_duo.driver.set_window_size(*viewport)
     dash_duo.start_server(create_dash_app())
@@ -442,6 +479,10 @@ def _copy_shared_link(dash_duo):
     dash_duo.driver.execute_cdp_cmd("Browser.grantPermissions", {
         "origin": dash_duo.server_url, "permissions": ["clipboardReadWrite", "clipboardSanitizedWrite"],
     })
+    dash_duo.driver.execute_async_script(
+        "const done = arguments[0], clipboard = navigator.clipboard || window.simulationTestClipboard;"
+        "clipboard.writeText('').then(() => done(true), error => done(String(error)));"
+    )
     clipboard = dash_duo.find_element("#simulation-clipboard")
     dash_duo.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", clipboard)
     WebDriverWait(dash_duo.driver, 10).until(lambda driver: driver.execute_script(
@@ -449,15 +490,23 @@ def _copy_shared_link(dash_duo):
         "const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);"
         "return hit === element || element.contains(hit);", clipboard,
     ))
+    initial_width = clipboard.rect["width"]
     clipboard.click()
-    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "Link copied")
-    link = dash_duo.driver.execute_async_script(
-        "const done = arguments[0]; navigator.clipboard.readText().then(done, error => done(String(error)));"
-    )
+    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "✓ Copied")
+    dash_duo.wait_for_contains_class("#simulation-clipboard", "simulation-copy-success")
+    assert clipboard.rect["width"] == pytest.approx(initial_width, abs=1)
+    def copied_link(driver):
+        value = driver.execute_async_script(
+            "const done = arguments[0], clipboard = navigator.clipboard || window.simulationTestClipboard;"
+            "clipboard.readText().then(done, error => done(String(error)));"
+        )
+        return value if value.startswith(dash_duo.server_url + "/") and "?simulation=" in value else False
+    link = WebDriverWait(dash_duo.driver, 10).until(copied_link)
     assert link.startswith(dash_duo.server_url + "/")
     assert "?simulation=" in link
     assert not dash_duo.driver.find_elements("css selector", "#simulation-share-link")
-    assert not dash_duo.find_element("#simulation-share-feedback").is_displayed()
+    assert not dash_duo.driver.find_elements("css selector", "#simulation-share-feedback, #simulation-link-fallback")
+    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "Copy simulation link")
     return link
 
 
@@ -606,18 +655,31 @@ def test_simulation_link_available_without_clipboard_api(dash_duo):
     from PyMieSimX.gui.sharing import read_simulation
     dash_duo.driver.set_window_size(1440, 1000)
     dash_duo.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-        "source": "Object.defineProperty(navigator, 'clipboard', {value: undefined});",
+        "source": "window.simulationTestClipboard = navigator.clipboard; Object.defineProperty(navigator, 'clipboard', {value: undefined});",
     })
     dash_duo.start_server(create_dash_app())
     dash_duo.find_element("#sidebar-link-single").click()
-    fallback = dash_duo.wait_for_element("#simulation-link-fallback")
-    WebDriverWait(dash_duo.driver, 10).until(lambda _: fallback.is_displayed())
-    fallback.click()
-    link = dash_duo.wait_for_element("#simulation-share-link").get_attribute("value")
+    link = _copy_shared_link(dash_duo)
     assert read_simulation(urlsplit(link).query, "/single")["page"] == "/single"
     assert not dash_duo.find_element("#export-single-csv").is_enabled()
-    logs = dash_duo.get_logs()
-    assert all(entry["level"] == "WARNING" and "clipboard" in entry["message"].lower() for entry in logs), logs
+    assert dash_duo.get_logs() == []
+
+
+def test_copy_button_reports_failure_without_showing_a_card(dash_duo):
+    dash_duo.driver.set_window_size(1440, 1000)
+    dash_duo.driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+        "source": "Object.defineProperty(navigator, 'clipboard', {value: {writeText: () => Promise.reject(new Error('denied'))}});"
+                  "document.execCommand = () => false;",
+    })
+    dash_duo.start_server(create_dash_app())
+    dash_duo.find_element("#sidebar-link-single").click()
+    button = dash_duo.wait_for_element("#simulation-clipboard")
+    button.click()
+    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "Unable to copy")
+    dash_duo.wait_for_contains_class("#simulation-clipboard", "simulation-copy-error")
+    assert not dash_duo.find_elements("#simulation-share-feedback, #simulation-share-link")
+    dash_duo.wait_for_text_to_equal("#simulation-clipboard", "Copy simulation link")
+    assert dash_duo.get_logs() == []
 
 
 def test_shared_auto_run_validation_error_recovers_without_repeating(dash_duo, isolated_experiment_jobs):

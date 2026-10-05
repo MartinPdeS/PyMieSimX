@@ -5,7 +5,7 @@ import logging
 from dash import Input, Output, State, dcc, html, no_update
 from dash.exceptions import PreventUpdate
 
-from PyMieSimX.gui.sharing import sharing_controls, sharing_feedback, shared_setup
+from PyMieSimX.gui.sharing import sharing_controls, shared_setup
 import plotly.graph_objects as go
 import numpy as np
 
@@ -104,7 +104,6 @@ def build_population_page():
                                 id="population-export", disabled=True, className="toolbar-button toolbar-button-secondary"),
                     sharing_controls("/population"),
                 ]),
-                sharing_feedback(),
                 html.Div(id="population-status", role="status", children="Ready. Click Run to calculate all properties."),
                 _panel("Distribution preview", [
                     dcc.Graph(id="population-preview", config={"displaylogo": False}),
