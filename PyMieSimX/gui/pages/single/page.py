@@ -13,6 +13,7 @@ def build_single_page(plot_settings: dict | None = None):
     return html.Div(
         className="tab-content-stack single-tab-content",
         children=[
+            html.P("Explore Mie scattering from a single particle, including nanoparticles. Configure the source and scatterer to inspect angular scattering, polarization, and field representations.", className="workspace-intro"),
             html.Section(
                 className="single-workspace",
                 children=[

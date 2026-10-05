@@ -10,6 +10,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from PyMieSimX.gui.interface import create_dash_app
 from PyMieSimX.gui.jobs import ExperimentJobManager
+from PyMieSimX.gui.seo import PAGE_METADATA
 
 
 @pytest.fixture(autouse=True)
@@ -29,6 +30,35 @@ def _wait_for_sidebar_transition(dash_duo, sidebar_id="experiment-right-sidebar"
             ".every(animation => animation.playState !== 'running')", sidebar_id,
         )
     )
+
+
+def test_page_metadata_tracks_navigation_and_direct_visits(dash_duo):
+    dash_duo.driver.set_window_size(1440, 1000)
+    dash_duo.start_server(create_dash_app())
+
+    def wait_for_metadata(path):
+        metadata = PAGE_METADATA[path]
+        WebDriverWait(dash_duo.driver, 10).until(
+            lambda driver: driver.title == metadata["title"]
+            and driver.execute_script(
+                'return Array.from(document.head.querySelectorAll(\'meta[name="description"]\'))'
+                '.map(element => element.content);'
+            ) == [metadata["description"]]
+        )
+
+    wait_for_metadata("/")
+    for route, label in (("single", "Single Scatterer"), ("experiment", "Parameter Scan")):
+        dash_duo.wait_for_text_to_equal(f"#sidebar-link-{route}", label)
+        dash_duo.find_element(f"#sidebar-link-{route}").click()
+        dash_duo.wait_for_element(".workspace-intro")
+        wait_for_metadata(f"/{route}")
+        dash_duo.driver.refresh()
+        dash_duo.wait_for_element(".workspace-intro")
+        wait_for_metadata(f"/{route}")
+
+    dash_duo.find_element("#sidebar-link-home").click()
+    dash_duo.wait_for_text_to_equal("h1", "PyMieSim")
+    wait_for_metadata("/")
 
 
 @pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])

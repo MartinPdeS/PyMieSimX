@@ -14,6 +14,7 @@ from PyMieSimX.gui.callbacks import register_callbacks
 from PyMieSimX.gui.layout import create_layout
 from PyMieSimX.gui.material_catalog import ensure_material_catalog
 from PyMieSimX.gui.services import available_measures
+from PyMieSimX.gui.seo import PAGE_METADATA, SearchDash, register_page_metadata
 
 LOGGER = logging.getLogger(__name__)
 GITHUB_RELEASES_URL = "https://github.com/MartinPdeS/PyMieSimX/releases"
@@ -36,9 +37,10 @@ def _initialize_material_catalog() -> None:
 
 def create_dash_app() -> Dash:
     """Create and configure the experiment dashboard Dash application."""
-    application = Dash(
+    application = SearchDash(
         __name__,
-        title="PyMieSim",
+        title=PAGE_METADATA["/"]["title"],
+        update_title=None,
         assets_folder=str(Path(__file__).with_name("assets")),
         suppress_callback_exceptions=True,
     )
@@ -51,6 +53,7 @@ def create_dash_app() -> Dash:
     initial_measures = available_measures("SphereSet", "PhotodiodeSet")
     application.layout = create_layout(initial_measures)
     register_callbacks(application, initial_measures)
+    register_page_metadata(application)
     LOGGER.debug("Dash application initialized with %d callbacks", len(application.callback_map))
     return application
 

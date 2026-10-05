@@ -217,6 +217,7 @@ def create_layout(default_measure_options: list[str]):
         className="app-shell",
         children=[
             dcc.Location(id="url", refresh=False),
+            dcc.Store(id="page-metadata"),
             dcc.Store(id="experiment-result"),
             dcc.Store(id="single-result"),
             dcc.Download(id="csv-download"),

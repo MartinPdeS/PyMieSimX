@@ -29,7 +29,7 @@ def build_home_page(*, home_visits: int | float | None = None):
                         [
                             html.H1("PyMieSim"),
                             html.P(
-                                "An open-source library for fast and flexible far-field Mie scattering simulations.",
+                                "An open-source Mie theory simulator and scattering calculator. Explore individual particles, run parameter sweeps, and export results with PyMieSim.",
                                 className="hero-text",
                             ),
                         ],

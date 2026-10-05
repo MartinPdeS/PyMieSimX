@@ -15,6 +15,7 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
     return html.Div(
         className="tab-content-stack experiment-tab-content",
         children=[
+            html.P("Run a Mie parameter sweep across source, scatterer, and detector settings. Compare scattering measures in the plots and export the results as CSV.", className="workspace-intro"),
             html.Section(
                 id="configure",
                 className="workspace",

@@ -4055,3 +4055,9 @@ html .single-workspace .representation-card {
 .population-page .documentation-table td { overflow-wrap: anywhere; }
 #population-status, #population-preview-error { margin-bottom: 12px; }
 #population-results { overflow-x: auto; }
+.workspace-intro {
+    margin: 0;
+    color: var(--muted);
+    font-size: .86rem;
+    line-height: 1.6;
+}
