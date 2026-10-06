@@ -1,0 +1,47 @@
+name: Quality and GUI tests
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  python-quality:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - name: Set up Python and CI dependencies
+        uses: MartinPdeS/MPSActions/actions/setup-python@0f5927acf88b25b5d253421e508387897096a2cc
+        with:
+          python-version: "${{ matrix.python-version }}"
+          install-command: >-
+            python -m pip install --upgrade pip && python -m pip install -e ".[testing,dev]"
+      - name: Initialize material catalog
+        run: python -m PyOptik setup --no-progress
+      - name: Ruff
+        run: python -m ruff check PyMieSimX tests
+      - name: Mypy
+        run: python -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py PyMieSimX/gui/models.py PyMieSimX/gui/jobs.py PyMieSimX/gui/callback_helpers.py PyMieSimX/gui/admin.py
+      - name: GUI tests
+        run: python -m pytest
+
+  browser-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python and CI dependencies
+        uses: MartinPdeS/MPSActions/actions/setup-python@0f5927acf88b25b5d253421e508387897096a2cc
+        with:
+          python-version: "3.11"
+          install-command: >-
+            python -m pip install --upgrade pip && python -m pip install -e ".[testing,browser]"
+      - name: Initialize material catalog
+        run: python -m PyOptik setup --no-progress
+      - name: Browser workflow tests
+        # The full GUI suite enforces the repository-wide coverage threshold.
+        run: python -m pytest tests/browser --config-file=pytest.ini --headless --cov=PyMieSimX --cov-report=term --cov-fail-under=0
