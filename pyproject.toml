@@ -54,6 +54,9 @@ dev = [
 docs = [
     "MartinPdeS-docs>=0.1.4",
 ]
+documentation = [
+    "MartinPdeS-docs>=0.1.4",
+]
 
 [tool.setuptools.packages.find]
 include = ["PyMieSimX*"]
