@@ -1,6 +1,11 @@
 PyMieSimX
 =========
 
+.. image:: docs/source/_static/logo.svg
+   :alt: PyMieSimX
+   :align: center
+   :width: 420px
+
 PyMieSimX is the standalone graphical interface for `PyMieSim
 <https://github.com/MartinPdeS/PyMieSim>`_. It provides a Dash application for
 configuring optical setups, running parameter sweeps, exploring individual

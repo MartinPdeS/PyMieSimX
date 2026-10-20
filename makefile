@@ -1,7 +1,7 @@
 PYTHON ?= python3
 BUILD_DIR ?= build
 
-.PHONY: quality test build install editable run docker-build docker-run clean release tag patch minor major
+.PHONY: quality test docs build install editable run docker-build docker-run clean release tag patch minor major
 
 quality:
 	$(PYTHON) -m ruff check PyMieSimX tests
@@ -9,6 +9,9 @@ quality:
 
 test:
 	$(PYTHON) -m pytest
+
+docs:
+	$(PYTHON) -m sphinx -M html docs/source docs/_build
 
 build:
 	$(PYTHON) -m build --outdir $(BUILD_DIR)

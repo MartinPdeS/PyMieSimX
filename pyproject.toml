@@ -51,6 +51,9 @@ dev = [
     "mypy==1.15.0",
     "ruff==0.11.2",
 ]
+docs = [
+    "MartinPdeS-docs>=0.1.4",
+]
 
 [tool.setuptools.packages.find]
 include = ["PyMieSimX*"]
