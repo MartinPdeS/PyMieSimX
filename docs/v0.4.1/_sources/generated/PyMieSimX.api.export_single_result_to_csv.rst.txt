@@ -1,0 +1,6 @@
+﻿PyMieSimX.api.export\_single\_result\_to\_csv
+=============================================
+
+.. currentmodule:: PyMieSimX.api
+
+.. autofunction:: export_single_result_to_csv
