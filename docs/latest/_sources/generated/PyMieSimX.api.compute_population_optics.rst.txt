@@ -1,0 +1,6 @@
+﻿PyMieSimX.api.compute\_population\_optics
+=========================================
+
+.. currentmodule:: PyMieSimX.api
+
+.. autofunction:: compute_population_optics
