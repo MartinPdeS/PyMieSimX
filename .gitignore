@@ -9,6 +9,8 @@ build/
 dist/
 .coverage
 htmlcov/
+docs/_build/
+docs/source/generated/
 .DS_Store
 !conda.recipe/
 !conda.recipe/meta.yaml
