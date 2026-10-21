@@ -18,19 +18,8 @@ from scripts and notebooks.
    getting_started
    how_it_works
    sharing
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Reference
-
-   api
-   gui
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Project
-
-   contributing
+   Reference <reference>
+   Project <project>
 
 Key features
 ------------
