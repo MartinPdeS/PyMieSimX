@@ -37,20 +37,10 @@ globals().update(
         repository=repository,
         logo="_static/logo.svg",
         favicon="_static/favicon.svg",
-        extensions=[
-            "sphinx.ext.autodoc",
-            "sphinx.ext.autosummary",
-            "sphinx.ext.intersphinx",
-            "sphinx.ext.napoleon",
-            "sphinx.ext.viewcode",
-            "sphinx.ext.todo",
-            "sphinx_design",
-        ],
+        include_gallery=False,
+        autodoc_default_options={"members": True},
     )
 )
-
-autodoc_default_options.update({"members": True})
-html_context.update({"doc_path": "docs/source", "default_mode": "dark"})
 
 intersphinx_mapping = {
     "numpy": ("https://numpy.org/devdocs", None),
