@@ -1,0 +1,6 @@
+﻿PyMieSimX.api.estimate\_result\_size
+====================================
+
+.. currentmodule:: PyMieSimX.api
+
+.. autofunction:: estimate_result_size
