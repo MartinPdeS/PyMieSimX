@@ -18,7 +18,7 @@ jobs:
         python-version: ["3.11", "3.14"]
     steps:
       - name: Set up Python and CI dependencies
-        uses: MartinPdeS/MPSActions/actions/setup-python@v11
+        uses: MartinPdeS/MPSActions/actions/setup-python@v12
         with:
           python-version: "${{ matrix.python-version }}"
           install-command: >-
