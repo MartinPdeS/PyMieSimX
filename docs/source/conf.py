@@ -1,9 +1,7 @@
 """Sphinx configuration for PyMieSimX."""
 
-import os
 import subprocess
 import sys
-from importlib.metadata import PackageNotFoundError, version as distribution_version
 from pathlib import Path
 
 from martinpdes_docs import configure
@@ -29,13 +27,6 @@ package = "PyMieSimX"
 repository = "MartinPdeS/PyMieSimX"
 author = "Martin Poinsinet de Sivry-Houle"
 
-try:
-    installed_version = distribution_version(package)
-except PackageNotFoundError:
-    installed_version = "latest"
-
-version = os.getenv("tag", installed_version)
-
 # PyMieSimX documents a stable Python API and its Dash application; it does
 # not currently have executable gallery examples.
 globals().update(
@@ -44,7 +35,6 @@ globals().update(
         package=package,
         author=author,
         repository=repository,
-        version=version,
         logo="_static/logo.svg",
         favicon="_static/favicon.svg",
         extensions=[
