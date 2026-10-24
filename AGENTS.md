@@ -73,7 +73,7 @@ when testing desktop and responsive layouts.
 - The Conda workflow supports manual build verification. Publishing to Conda
   and PyPI occurs on version-tag pushes. Verify the installed Conda artifact,
   including both import and CLI startup, rather than only the checkout.
-- Versions come from Git tags through setuptools-scm. Use the existing release
+- Versions are explicit in pyproject.toml and maintained by martinpdes-maintenance. Use the existing release
   tools/Makefile when a release is requested; a normal commit/push does not
   imply creating a release tag.
 - Inspect failing Actions job logs and fix the underlying cause. After pushing
