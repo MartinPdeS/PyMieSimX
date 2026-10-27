@@ -54,10 +54,10 @@ dev = [
     "ruff==0.11.2",
 ]
 docs = [
-    "MartinPdeS-docs>=0.2.5,<0.3",
+    "MartinPdeS-docs>=0.4.0,<0.5",
 ]
 documentation = [
-    "MartinPdeS-docs>=0.2.5,<0.3",
+    "MartinPdeS-docs>=0.4.0,<0.5",
 ]
 
 [tool.setuptools.packages.find]
@@ -77,4 +77,6 @@ no_implicit_optional = true
 exclude = "(^development/|^docs/)"
 
 [tool.mps-maintenance]
+version-file = "PyMieSimX/_version.py"
+version-method = "literal"
 conda-recipe = "conda.recipe/meta.yaml"

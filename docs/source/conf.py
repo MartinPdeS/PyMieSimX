@@ -33,6 +33,7 @@ globals().update(
     configure(
         project=project,
         package=package,
+        version="auto",
         author=author,
         repository=repository,
         logo="_static/logo.svg",

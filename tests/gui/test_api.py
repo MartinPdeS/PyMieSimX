@@ -1,6 +1,7 @@
 """Tests for the public API and callback orchestration boundary."""
 
 import PyMieSimX
+from PyMieSimX._version import __version__ as documented_version
 
 from PyMieSimX.gui import jobs as jobs_module
 from PyMieSimX.gui.callback_helpers import execute_experiment_callback, merge_local_plot_values, pair_ids_with_values
@@ -13,6 +14,7 @@ def test_public_api_exposes_computational_entry_points_without_gui_symbols():
     assert PyMieSimX.MAX_SWEEP_COMBINATIONS == 50_000
     assert PyMieSimX.MAX_RESULT_PAYLOAD_BYTES > 0
     assert isinstance(PyMieSimX.__version__, str)
+    assert PyMieSimX.__version__ == documented_version
 
 
 def test_callback_helpers_convert_state_and_preserve_plot_settings():
