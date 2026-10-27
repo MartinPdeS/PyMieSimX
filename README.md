@@ -30,9 +30,9 @@
 | PyMieSimX/gui/seo.py                                   |       16 |        0 |        2 |        1 |     94.44% |   70-\>72 |
 | PyMieSimX/gui/sharing.py                               |      226 |       17 |      120 |       16 |     90.46% |77-78, 87, 94, 96, 98, 106, 108, 111, 134, 138, 149, 154, 157, 162, 174, 241-\>250, 313 |
 | PyMieSimX/gui/usage\_metrics.py                        |       86 |       36 |       14 |        3 |     55.00% |37, 60-63, 84-91, 102-103, 112-115, 119-120, 132-144, 148-170 |
-| **TOTAL**                                              | **2412** |  **601** |  **700** |   **99** | **72.88%** |           |
+| **TOTAL**                                              | **2414** |  **601** |  **700** |   **99** | **72.90%** |           |
 
-12 files skipped due to complete coverage.
+13 files skipped due to complete coverage.
 
 
 ## Setup coverage badge
