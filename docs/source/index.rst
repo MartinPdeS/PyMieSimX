@@ -11,7 +11,41 @@ PyMieSimX is a Dash interface for configuring and exploring
 Use the web interface for interactive work, or call the lightweight Python API
 from scripts and notebooks.
 
+.. grid:: 1 2 3 3
+   :gutter: 2
+
+   .. grid-item-card:: Getting started
+      :link: getting_started
+      :link-type: doc
+
+      Install PyMieSimX and start exploring simulations.
+
+   .. grid-item-card:: How it works
+      :link: how_it_works
+      :link-type: doc
+
+      Learn how the interface and calculations fit together.
+
+   .. grid-item-card:: Sharing simulations
+      :link: sharing
+      :link-type: doc
+
+      Share a simulation setup and export results.
+
+   .. grid-item-card:: Reference
+      :link: reference
+      :link-type: doc
+
+      Browse the Python API and graphical interface.
+
+   .. grid-item-card:: Project
+      :link: project
+      :link-type: doc
+
+      Find project and contribution information.
+
 .. toctree::
+   :hidden:
    :maxdepth: 2
    :caption: User guide
 
