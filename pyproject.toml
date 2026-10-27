@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "PyMieSimX"
-version = "0.4.7"
+version = "0.4.8"
 description = "Graphical Dash interface for PyMieSim."
 license = "MIT"
 license-files = ["LICENSE"]
