@@ -1,0 +1,6 @@
+﻿PyMieSimX.api.export\_population\_to\_csv
+=========================================
+
+.. currentmodule:: PyMieSimX.api
+
+.. autofunction:: export_population_to_csv

@@ -1,0 +1,6 @@
+﻿PyMieSimX.api.run\_experiment
+=============================
+
+.. currentmodule:: PyMieSimX.api
+
+.. autofunction:: run_experiment
