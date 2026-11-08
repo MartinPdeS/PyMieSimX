@@ -2,11 +2,11 @@
 
 
 from dash import dcc, html
-
 from PyMieSimX.gui.defaults import DEFAULT_APPLICATION_SETTINGS, DEFAULT_PLOT_SETTINGS
 from PyMieSimX.gui.material_catalog import material_dropdown_options
 from PyMieSimX.gui.parsing import is_numeric_material_value
 from PyMieSimX.gui.schemas import FieldSpec, SECTION_FIELDS, SINGLE_SCATTERER_FIELDS, SINGLE_SOURCE_FIELDS
+from urllib.parse import quote
 
 
 THEME_LIGHT = "https://cdn.jsdelivr.net/npm/bootswatch@5.3.6/dist/flatly/bootstrap.min.css"
@@ -19,6 +19,16 @@ PLOT_CONFIG = {
     "doubleClick": "reset+autosize",
     "modeBarButtonsToAdd": ["zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"],
     "toImageButtonOptions": {"format": "png", "filename": "pymiesim_plot", "scale": 2},
+}
+
+SIDEBAR_ICONS = {
+    "/": '<path d="M3 11 12 4l9 7v9h-6v-6H9v6H3z"/>',
+    "/single": '<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="4" ry="10"/>',
+    "/experiment": '<path d="M4 20V4m0 16h16M7 16l4-5 3 2 5-7"/><circle cx="19" cy="6" r="1"/>',
+    "/population": '<circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><circle cx="12" cy="16" r="4"/>',
+    "/examples": '<path d="M9 3h6M10 3v6l-5 8a3 3 0 0 0 3 4h8a3 3 0 0 0 3-4l-5-8V3M7 15h10"/>',
+    "/documentation": '<path d="M5 3h10l4 4v14H5zM14 3v5h5M8 12h8M8 16h8"/>',
+    "/settings": '<path d="M10 2h4l.6 2.2 2 .8 2-1 2.8 2.8-1 2 .8 2L23 11v3l-2.2.6-.8 2 1 2-2.8 2.8-2-1-2 .8L14 23h-4l-.6-2.2-2-.8-2 1-2.8-2.8 1-2-.8-2L1 14v-3l2.2-.6.8-2-1-2L5.8 3.6l2 1 2-.8z"/><circle cx="12" cy="12" r="3"/>',
 }
 
 
@@ -312,7 +322,7 @@ def _build_sidebar():
                     _sidebar_link("Ensemble Optics", "/population"),
                     _sidebar_link("Examples", "/examples"),
                     _sidebar_link("Documentation", "/documentation"),
-                    _sidebar_link("Settings", "/settings"),
+                    html.Div(_sidebar_link("Settings", "/settings"), className="sidebar-footer"),
                 ],
             ),
         ],
@@ -342,7 +352,19 @@ def _sidebar_link(label: str, href: str):
     """Build a single sidebar anchor."""
     # Keep route-based IDs stable while allowing user-facing labels to evolve.
     link_id = f"sidebar-link-{href.strip('/') or 'home'}"
-    return dcc.Link(label, id=link_id, href=href, refresh=False, className="sidebar-link active" if label == "Home" else "sidebar-link")
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" '
+        'fill="none" stroke="black" stroke-width="1.8" '
+        'stroke-linecap="round" stroke-linejoin="round">'
+        f"{SIDEBAR_ICONS[href]}</svg>"
+    )
+    mask = f'url("data:image/svg+xml,{quote(svg)}")'
+    icon = html.Span(
+        className="sidebar-link-icon",
+        style={"maskImage": mask, "WebkitMaskImage": mask},
+        **{"aria-hidden": "true"},
+    )
+    return dcc.Link([icon, html.Span(label)], id=link_id, href=href, refresh=False, className="sidebar-link active" if label == "Home" else "sidebar-link")
 
 
 def render_fields(section: str, section_type: str):

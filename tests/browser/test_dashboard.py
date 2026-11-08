@@ -90,6 +90,34 @@ def test_page_metadata_tracks_navigation_and_direct_visits(dash_duo):
     wait_for_metadata("/")
 
 
+@pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844), (1440, 320)], ids=["desktop", "mobile", "short-desktop"])
+def test_sidebar_icons_and_settings_navigation(dash_duo, viewport):
+    """Render decorative icons and keep Settings reachable at all viewport sizes."""
+    dash_duo.driver.set_window_size(*viewport)
+    dash_duo.start_server(create_dash_app())
+    settings = dash_duo.wait_for_element("#sidebar-link-settings")
+    links = dash_duo.find_elements(".sidebar-nav .sidebar-link")
+    assert len(links) == 7
+    for link in links:
+        icon = link.find_element("css selector", ".sidebar-link-icon")
+        assert icon.get_attribute("aria-hidden") == "true"
+        assert "data:image/svg+xml" in dash_duo.driver.execute_script(
+            "return getComputedStyle(arguments[0]).maskImage;", icon,
+        )
+
+    if viewport == (1440, 1000):
+        assert dash_duo.driver.execute_script(
+            "const sidebar = document.querySelector('.dashboard-sidebar').getBoundingClientRect();"
+            "const footer = document.querySelector('.sidebar-footer').getBoundingClientRect();"
+            "return sidebar.bottom - footer.bottom;"
+        ) == pytest.approx(16, abs=2)
+
+    settings.click()
+    dash_duo.wait_for_text_to_equal(".settings-page h1", "Settings")
+    dash_duo.wait_for_contains_class("#sidebar-link-settings", "active")
+    assert dash_duo.get_logs() == []
+
+
 @pytest.mark.parametrize("viewport", [(1440, 1000), (390, 844)], ids=["desktop", "mobile"])
 def test_examples_cards_open_all_six_simulations_and_run_automatically(dash_duo, viewport):
     from PyMieSimX.gui.pages.examples import EXAMPLES
