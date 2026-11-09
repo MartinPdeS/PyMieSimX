@@ -58,6 +58,9 @@ include = ["PyMieSimX*"]
 [tool.setuptools.package-data]
 "PyMieSimX.gui" = ["assets/*"]
 
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
