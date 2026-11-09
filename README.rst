@@ -4,15 +4,19 @@ PyMieSimX
 .. image:: docs/source/_static/logo.svg
    :alt: PyMieSimX
    :align: center
-   :width: 420px
+   :width: 100%
 
 PyMieSimX is the standalone graphical interface for `PyMieSim
 <https://github.com/MartinPdeS/PyMieSim>`_. It provides a Dash application for
 configuring optical setups, running parameter sweeps, exploring individual
 particles, and exporting results.
 
+.. image:: docs/source/_static/app-screenshot.png
+   :alt: PyMieSimX home page showing the Single Scatterer and Parameter Scan workspaces
+   :width: 100%
+
 Try the live webapp
-----------------------
+-------------------
 
 **Run Mie scattering simulations in your browser—no installation required.**
 
@@ -24,6 +28,19 @@ Try the live webapp
 optical setups, run parameter sweeps, explore individual particles, and download
 your results as CSV files. The hosted service provides direct access to the
 graphical interface; local installation is also available below.
+
+Choose a workspace
+------------------
+
+* **Single Scatterer** explores angular scattering, polarization, phase
+  functions, and fields for one optical setup.
+* **Parameter Scan** varies source, scatterer, or detector parameters and
+  plots or exports the resulting measures.
+* **Ensemble Optics** calculates bulk optical properties for a particle
+  population with a chosen size distribution and concentration.
+
+Start with an example, adjust its inputs, and select **Run**. Export results
+as CSV or copy a simulation link to share the configuration.
 
 Examples
 --------
@@ -145,7 +162,7 @@ Run the GUI test suite with::
 
 GitHub Actions includes quality checks, GUI tests, PyPI publishing, Conda
 recipe publishing, and coverage deployment. The Conda recipe is in
-``meta.yaml`` and the container entry point is defined in ``Dockerfile``.
+``conda.recipe/meta.yaml`` and the container entry point is defined in ``Dockerfile``.
 
 Python API
 ----------
