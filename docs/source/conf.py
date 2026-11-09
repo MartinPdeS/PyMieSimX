@@ -42,9 +42,3 @@ globals().update(
         autodoc_default_options={"members": True},
     )
 )
-
-intersphinx_mapping = {
-    "numpy": ("https://numpy.org/devdocs", None),
-    "pandas": ("https://pandas.pydata.org/docs", None),
-    "plotly": ("https://plotly.com/python-api-reference", None),
-}
