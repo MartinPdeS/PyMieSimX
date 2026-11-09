@@ -737,3 +737,32 @@ def test_shared_auto_run_validation_error_recovers_without_repeating(dash_duo, i
     WebDriverWait(dash_duo.driver, 30).until(lambda _: dash_duo.find_element("#export-csv").is_enabled())
     assert len(isolated_experiment_jobs._jobs) == 1
     assert dash_duo.get_logs() == []
+
+
+@pytest.mark.parametrize(
+    ("route", "tab", "sidebar", "run", "status"),
+    [
+        ("single", "single-tab-source", "single-right-sidebar", "run-single-button", "single-graph"),
+        ("experiment", "experiment-tab-source", "experiment-right-sidebar", "run-experiment-button", "experiment-run-status"),
+        ("population", "population-tab-particle", "population-right-sidebar", "population-compute", "population-status"),
+    ],
+)
+def test_sidebar_stays_open_on_run_and_closes_on_background(dash_duo, route, tab, sidebar, run, status):
+    """Running keeps the configuration open; clicking page background dismisses it."""
+    dash_duo.driver.set_window_size(1440, 1000)
+    dash_duo.start_server(create_dash_app())
+    dash_duo.driver.get(f"{dash_duo.server_url}/{route}")
+    dash_duo.wait_for_element(f"#{tab}").click()
+    dash_duo.wait_for_contains_class(f"#{sidebar}", "open")
+    _wait_for_sidebar_transition(dash_duo, sidebar)
+    initial_status = dash_duo.find_element(f"#{status}").text
+    dash_duo.find_element(f"#{run}").click()
+    WebDriverWait(dash_duo.driver, 30).until(
+        lambda driver: driver.find_element("id", status).text != initial_status
+    )
+    assert "open" in dash_duo.find_element(f"#{sidebar}").get_attribute("class").split()
+    WebDriverWait(dash_duo.driver, 30).until(
+        lambda driver: driver.find_element("id", run).is_enabled()
+    )
+    dash_duo.find_element(".workspace-header").click()
+    dash_duo.wait_for_class_to_equal(f"#{sidebar}", "right-sidebar-panel")

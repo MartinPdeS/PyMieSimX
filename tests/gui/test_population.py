@@ -181,9 +181,9 @@ def test_population_sidebar_uses_shared_open_switch_and_dismiss_behavior(monkeyp
 
     def click(target, current_class="right-sidebar-panel", active=None):
         monkeypatch.setattr(callbacks, "ctx", SimpleNamespace(
-            triggered_id=target, triggered_prop_ids={f"{target}.n_clicks": target},
+            triggered_id=target, triggered_prop_ids={f"{target}.{'data' if target == 'sidebar-background-click' else 'n_clicks'}": target},
         ))
-        return handle(0, 0, 0, 0, 0, 0, 0, current_class, active)
+        return handle(0, 0, 0, 0, 0, current_class, active)
 
     particle = click("population-tab-particle")
     assert particle[:2] == ("right-sidebar-panel open", "population-tab-particle")
@@ -192,9 +192,7 @@ def test_population_sidebar_uses_shared_open_switch_and_dismiss_behavior(monkeyp
     distribution = click("population-tab-distribution", *particle[:2])
     assert distribution[7] == {} and distribution[6] == {"display": "none"}
     assert distribution[3].endswith("active")
-    inside = click("population-right-sidebar", *distribution[:2])
-    assert all(value is no_update for value in inside)
-    for target in ("population-tab-distribution", "page-content", "dashboard-sidebar"):
+    for target in ("population-tab-distribution", "sidebar-background-click"):
         dismissed = click(target, *distribution[:2])
         assert dismissed[0] == "right-sidebar-panel"
         assert all(style == {"display": "none"} for style in dismissed[6:])

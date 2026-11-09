@@ -198,8 +198,8 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    min-height: 96px;
+    width: 48px;
+    min-height: 100px;
     padding: 10px 6px;
     border: 1px solid rgba(128, 128, 128, .25);
     border-right: 0;
@@ -207,18 +207,25 @@ body {
     background: var(--panel-strong, #fff);
     box-shadow: -6px 0 14px rgba(0, 0, 0, .10);
     color: #52616d;
-    font-size: .7rem;
-    font-weight: 750;
+    font-size: .76rem;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .05em;
     writing-mode: vertical-rl;
     cursor: pointer;
 }
 
-.sidebar-tab--yellow { background: #fffbed; border-color: #e7c766; color: #8a6d1a; }
-.sidebar-tab--blue { background: #eef4ff; border-color: #7ea6e8; color: #274b8a; }
-.sidebar-tab--cyan { background: #effbfc; border-color: #6fc4cf; color: #1c6b76; }
-.sidebar-tab--purple { background: #f6effc; border-color: #b487e0; color: #5c2d8a; }
+.sidebar-tab:hover,
+.sidebar-tab:focus-visible {
+    filter: brightness(.94);
+    outline: 2px solid currentColor;
+    outline-offset: -3px;
+}
+
+.sidebar-tab--yellow { background: #fff1be; border-color: #e7c766; color: #8a6d1a; }
+.sidebar-tab--blue { background: #dceaff; border-color: #7ea6e8; color: #274b8a; }
+.sidebar-tab--cyan { background: #d5f4f6; border-color: #6fc4cf; color: #1c6b76; }
+.sidebar-tab--purple { background: #eadcf9; border-color: #b487e0; color: #5c2d8a; }
 
 .sidebar-tab--yellow.active { background: #f2d876; border-color: #c9a13a; color: #4a3a05; box-shadow: -6px 0 14px rgba(0, 0, 0, .18); }
 .sidebar-tab--blue.active { background: #a9c6f5; border-color: #4d78c9; color: #16294f; box-shadow: -6px 0 14px rgba(0, 0, 0, .18); }
@@ -228,7 +235,7 @@ body {
 .right-sidebar-panel {
     position: fixed;
     top: 0;
-    right: 44px;
+    right: 52px;
     z-index: 45;
     display: flex;
     flex-direction: column;
