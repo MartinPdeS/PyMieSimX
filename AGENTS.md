@@ -17,7 +17,7 @@ Python API working together.
   CSS and browser assets live in `PyMieSimX/gui/assets/`.
 - `PyMieSimX/application/wsgi.py` is the hosted-server entry point;
   `PyMieSimX/__main__.py` provides the `pymiesimx` launcher.
-- `tests/gui/` covers Python behavior and Dash callbacks. `tests/browser/`
+- `tests/application/` covers Python behavior and Dash callbacks. `tests/browser/`
   exercises the real browser workflow separately.
 
 ## Setup and checks
@@ -36,7 +36,7 @@ git diff --check
 ```
 
 Browser tests need Chrome and a compatible ChromeDriver. The default pytest
-suite runs `tests/gui` and enforces the coverage threshold in `.coveragerc`;
+suite runs `tests/application` and enforces the coverage threshold in `.coveragerc`;
 the separate browser command intentionally disables that threshold. Use a
 writable `MPLCONFIGDIR` when the default Matplotlib cache is unavailable.
 

@@ -17,7 +17,7 @@ from PyMieSim.units import ureg
 from PyMieSimX import compute_population_optics, export_population_to_csv
 from PyMieSimX.gui.interface import create_dash_app
 from PyMieSimX.gui.population_service import build_population_distribution
-from tests.gui.test_dash_callbacks import _callback
+from tests.application.test_dash_callbacks import _callback
 
 
 def _values(result):
