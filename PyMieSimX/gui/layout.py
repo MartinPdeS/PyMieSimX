@@ -262,7 +262,7 @@ def build_application_footer() -> html.Footer:
     """Build the global attribution footer shown below every page."""
     return html.Footer(
         [
-            "RosettaX is developed and maintained by ",
+            "PyMieSimX is developed and maintained by ",
             html.A(
                 "Martin Poinsinet de Sivry-Houle",
                 href="mailto:martin.poinsinet.de.sivry@gmail.com",
