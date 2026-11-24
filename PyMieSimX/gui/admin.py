@@ -2,6 +2,8 @@
 
 import hmac
 import os
+from collections import deque
+from threading import Lock
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -14,6 +16,50 @@ from PyMieSimX.gui.components import Card
 
 ADMIN_TOKEN_ENV_VAR = "PYMIESIMX_ADMIN_TOKEN"
 REFRESH_INTERVAL_MILLISECONDS = 30_000
+
+
+_PUBLIC_PAGES = frozenset({
+    "/", "/experiment", "/single", "/population", "/examples", "/documentation", "/settings",
+})
+_recent_visits: deque[tuple[str, str]] = deque(maxlen=200)
+_recent_visits_lock = Lock()
+
+
+def record_page_visit(*, route: str) -> None:
+    """Keep a bounded history of public page visits for this process."""
+    if route in _PUBLIC_PAGES:
+        visited_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        with _recent_visits_lock:
+            _recent_visits.appendleft((visited_at, route))
+
+
+def build_recent_visits() -> html.Div:
+    """Render the latest public page visits without collecting visitor identifiers."""
+    with _recent_visits_lock:
+        visits = tuple(_recent_visits)
+    if not visits:
+        return html.Div("No public page visits recorded.")
+    return html.Div(
+        html.Table([
+            html.Thead(html.Tr([html.Th("Visited at"), html.Th("Page"), html.Th("Details")])),
+            html.Tbody([
+                html.Tr([
+                    html.Td(visited_at),
+                    html.Td(route),
+                    html.Td(html.Details([
+                        html.Summary("View details"),
+                        html.Dl([
+                            html.Dt("Page"), html.Dd(route),
+                            html.Dt("Visited at"), html.Dd(visited_at),
+                            html.Dt("Location"), html.Dd("Unavailable"),
+                        ]),
+                    ])),
+                ])
+                for visited_at, route in visits
+            ]),
+        ], className="admin-activity-table"),
+        className="admin-activity-scroll",
+    )
 
 
 @dataclass(frozen=True)
@@ -108,6 +154,11 @@ def build_admin_page(token: str | None) -> html.Div:
                 ],
                 className="admin-metric-grid",
             ),
+            html.Section([
+                html.H2("Recent activity"),
+                html.P("Latest 200 public page visits recorded by this server process."),
+                html.Div(build_recent_visits(), id="admin-recent-visits"),
+            ], className=Card.classes(color="blue", extra="admin-activity-card")),
         ],
     )
 

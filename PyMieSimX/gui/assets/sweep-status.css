@@ -1,0 +1,5 @@
+.sweep-run-labels { display: inline-grid; }
+.sweep-run-labels > span { grid-area: 1 / 1; }
+.sweep-run-active,
+#run-experiment-button:disabled .sweep-run-idle { visibility: hidden; }
+#run-experiment-button:disabled .sweep-run-active { visibility: visible; }

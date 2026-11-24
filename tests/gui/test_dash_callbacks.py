@@ -84,7 +84,8 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
         [{"name": name} for name in ("diameter", "material", "medium")],
         "None", [], [], "Qsca", {"job_id": "old-job"},
     )
-    assert job == {"job_id": "new-job"}
+    assert job["job_id"] == "new-job"
+    assert job["inputs"][-1] == "Qsca"
     assert cancelled == ["old-job"]
     assert polling_disabled is False
     assert run_disabled is True
@@ -97,7 +98,7 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     })
     poll = _callback(application, "_poll_experiment_job")
     completed, count, disabled, run_disabled, status = poll(1, job, 2)
-    assert completed == result
+    assert completed == {**result, "submitted_inputs": job["inputs"]}
     assert count == 3
     assert disabled is True
     assert run_disabled is False
@@ -186,7 +187,9 @@ def test_multiple_measure_submission(monkeypatch):
     monkeypatch.setattr(callbacks.experiment_jobs, "submit", submit_job)
     args = (*_experiment_args(diameter="100,200")[:-1], ["Qsca", "Qabs", "Qext"])
     response = _callback(application, "_submit_experiment")(1, *args, None)
-    assert response[:3] == ({"job_id": "multi-job"}, False, True)
+    assert response[0]["job_id"] == "multi-job"
+    assert response[0]["inputs"][-1] == ["Qsca", "Qabs", "Qext"]
+    assert response[1:3] == (False, True)
     assert captured["measure"] == ["Qsca", "Qabs", "Qext"]
 
 

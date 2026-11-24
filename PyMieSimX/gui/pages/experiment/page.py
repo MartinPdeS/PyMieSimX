@@ -35,7 +35,10 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
                                 className="graph-toolbar",
                                 children=[
                                     html.Button(
-                                        [html.Span("\u25b6", className="toolbar-button-icon", **{"aria-hidden": "true"}), "Run"],
+                                        html.Span([
+                                            html.Span("Run", className="sweep-run-idle"),
+                                            html.Span("Computing…", className="sweep-run-active"),
+                                        ], className="sweep-run-labels"),
                                         id="run-experiment-button",
                                         n_clicks=0,
                                         disabled=False,
@@ -56,6 +59,7 @@ def build_experiment_page(default_measure_options: list[str], plot_settings: dic
                                 className="experiment-run-feedback",
                                 children=status_banner("idle", "Ready. Click Run to start a sweep."),
                             ),
+                            html.Div(id="experiment-stale-status", role="status"),
                             _x_axis_card(default_measure_options),
                             html.Section(className="panel graph-panel", children=[dcc.Loading(id="result-graph-loading", type="circle", color="#4f8df7", custom_spinner=html.Div("Computing…", className="plot-computing-indicator"), delay_show=150, delay_hide=150, children=dcc.Graph(id="result-graph", config=PLOT_CONFIG))]),
                         ],

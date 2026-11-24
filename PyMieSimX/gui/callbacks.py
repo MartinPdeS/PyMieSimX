@@ -33,7 +33,10 @@ from PyMieSimX.gui.jobs import experiment_jobs
 from PyMieSimX.gui.validation import normalize_measures
 from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.sharing import register_sharing_callbacks, read_simulation, shared_setup, shared_plot_settings, restore_controls
-from PyMieSimX.gui.admin import build_admin_page, collect_admin_dashboard_data, dashboard_values, is_admin_access_granted
+from PyMieSimX.gui.admin import (
+    build_admin_page, build_recent_visits, collect_admin_dashboard_data, dashboard_values,
+    is_admin_access_granted, record_page_visit,
+)
 from PyMieSimX.gui.services import (
     available_measures,
     apply_plot_settings,
@@ -187,6 +190,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
     def _route_pages(pathname: str | None, search: str | None, home_visits: int, experiment_runs: int, single_runs: int, theme_store: dict | None, plot_settings: dict | None):
         """Render only the selected route page inside the persistent shell."""
         route = pathname or "/"
+        record_page_visit(route=route)
         try:
             setup = read_simulation(search, route)
             share_message = None
@@ -270,6 +274,20 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         if not is_admin_access_granted(token):
             return no_update, no_update, no_update, no_update
         return dashboard_values(collect_admin_dashboard_data())
+
+    @app.callback(
+        Output("admin-recent-visits", "children"),
+        Input("admin-refresh-interval", "n_intervals"),
+        Input("admin-refresh-button", "n_clicks"),
+        State("url", "search"),
+        prevent_initial_call=True,
+    )
+    def _refresh_admin_activity(_n_intervals: int, _n_clicks: int, search: str | None):
+        """Refresh the visit history for authenticated administrators."""
+        token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
+        if not is_admin_access_granted(token):
+            return no_update
+        return build_recent_visits()
 
     @app.callback(
         Output("plot-settings-store", "data"),
@@ -641,7 +659,8 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             LOGGER.exception("Failed to queue experiment")
             return None, True, False, status_banner("error", f"Could not start the sweep: {error}. Click Run to retry.")
         LOGGER.info("Experiment queued job_id=%s rows_estimate=%d bytes_estimate=%d", job_id, estimate.rows, estimate.estimated_bytes)
-        return {"job_id": job_id}, False, True, status_banner("idle", "Queued. Waiting for a computation worker…")
+        inputs = [source_type, source_mapping, scatterer_type, scatterer_mapping, detector_type, detector_mapping, measure]
+        return {"job_id": job_id, "inputs": inputs}, False, True, status_banner("idle", "Queued. Waiting for a computation worker…")
 
     @app.callback(
         Output("experiment-result", "data"),
@@ -665,7 +684,7 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             message = "Queued. Waiting for a computation worker…" if status == "pending" else "Running. Computing your parameter sweep…"
             return no_update, no_update, False, True, status_banner("idle", message)
         if status == "succeeded":
-            result = snapshot["result"]
+            result = {**snapshot["result"], "submitted_inputs": job_data.get("inputs")}
             try:
                 usage_metrics.record_experiment_run()
             except Exception:
@@ -675,6 +694,34 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
             return no_update, no_update, True, False, status_banner("warning", "Run cancelled. Click Run to start another sweep.")
         LOGGER.warning("Experiment job failed job_id=%s error=%s", snapshot["job_id"], snapshot["error"])
         return no_update, no_update, True, False, status_banner("error", f"Run failed: {snapshot['error'] or 'An unexpected computation error occurred.'}")
+
+    @app.callback(
+        Output("experiment-stale-status", "children"),
+        Input("source-type", "value"),
+        Input({"kind": "field", "section": "source", "name": ALL}, "value"),
+        Input("scatterer-type", "value"),
+        Input({"kind": "field", "section": "scatterer", "name": ALL}, "value"),
+        Input("detector-type", "value"),
+        Input({"kind": "field", "section": "detector", "name": ALL}, "value"),
+        Input("measure-select", "value"),
+        Input("experiment-result", "data"),
+        State({"kind": "field", "section": "source", "name": ALL}, "id"),
+        State({"kind": "field", "section": "scatterer", "name": ALL}, "id"),
+        State({"kind": "field", "section": "detector", "name": ALL}, "id"),
+    )
+    def _show_stale_result(source, source_values, scatterer, scatterer_values, detector, detector_values,
+                           measure, result, source_ids, scatterer_ids, detector_ids):
+        submitted = (result or {}).get("submitted_inputs")
+        if submitted is None:
+            return None
+        current = [
+            source, _pair_ids_with_values(source_ids, source_values),
+            scatterer, _pair_ids_with_values(scatterer_ids, scatterer_values),
+            detector, _pair_ids_with_values(detector_ids, detector_values), measure,
+        ]
+        if current != submitted:
+            return status_banner("warning", "From previous run. The plot and CSV reflect the inputs used for that sweep.")
+        return None
 
     @app.callback(
         Output("csv-download", "data"),

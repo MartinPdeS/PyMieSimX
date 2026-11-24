@@ -1,0 +1,11 @@
+.admin-activity-card { padding: 1rem; }
+.admin-activity-scroll { max-height: 32rem; overflow: auto; }
+.admin-activity-table { width: 100%; border-collapse: collapse; }
+.admin-activity-table :is(th, td) {
+    padding: .55rem .7rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid currentColor;
+}
+.admin-activity-table summary { cursor: pointer; }
+.admin-activity-table dl { margin-block: .5rem 0; }
