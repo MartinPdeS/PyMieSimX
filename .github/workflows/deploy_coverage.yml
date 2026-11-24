@@ -36,7 +36,7 @@ jobs:
             --cov-config=.coveragerc \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml \
-            tests/application \
+            tests/api tests/application \
             --config-file=pytest.ini
 
       - name: Post coverage comment

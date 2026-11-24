@@ -36,7 +36,7 @@ git diff --check
 ```
 
 Browser tests need Chrome and a compatible ChromeDriver. The default pytest
-suite runs `tests/application` and enforces the coverage threshold in `.coveragerc`;
+suite runs `tests/api` and `tests/application` and enforces the coverage threshold in `.coveragerc`;
 the separate browser command intentionally disables that threshold. Use a
 writable `MPLCONFIGDIR` when the default Matplotlib cache is unavailable.
 
