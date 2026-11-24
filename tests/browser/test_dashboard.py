@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from PyMieSimX.gui.interface import create_dash_app
 from PyMieSimX.gui.jobs import ExperimentJobManager
+from PyMieSimX.gui.pages.experiment import callbacks as experiment_callbacks
 from PyMieSimX.gui.seo import PAGE_METADATA
 
 
@@ -18,7 +19,7 @@ from PyMieSimX.gui.seo import PAGE_METADATA
 def isolated_experiment_jobs(dash_duo, monkeypatch):
     """Finish each worker before Dash's runner tears down its server threads."""
     manager = ExperimentJobManager()
-    monkeypatch.setattr("PyMieSimX.gui.callbacks.experiment_jobs", manager)
+    monkeypatch.setattr(experiment_callbacks, "experiment_jobs", manager)
     yield manager
     manager._executor.shutdown(wait=True)
 
