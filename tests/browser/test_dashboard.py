@@ -547,9 +547,9 @@ def test_shared_sweep_restores_saved_inputs_and_runs_once(dash_duo, viewport, is
     submitted = []
     original_submit = isolated_experiment_jobs.submit
 
-    def record_submit(**kwargs):
-        submitted.append(kwargs)
-        return original_submit(**kwargs)
+    def record_submit(*, request):
+        submitted.append(request)
+        return original_submit(request=request)
 
     monkeypatch.setattr(isolated_experiment_jobs, "submit", record_submit)
     dash_duo.start_server(create_dash_app())
@@ -569,9 +569,10 @@ def test_shared_sweep_restores_saved_inputs_and_runs_once(dash_duo, viewport, is
     assert "Qsca" in dash_duo.find_element("#measure-select").text
     assert "Qext" in dash_duo.find_element("#measure-select").text
     assert len(submitted) == 1
-    assert submitted[0]["source_values"]["wavelength"] == "600:700:3"
-    assert submitted[0]["scatterer_values"]["diameter"] == "80,120"
-    assert submitted[0]["measure"] == ["Qsca", "Qext"]
+    request = submitted[0]
+    np.testing.assert_allclose(request.source_set.wavelength.to("nanometer").magnitude, [600, 650, 700])
+    np.testing.assert_allclose(request.scatterer_set.diameter.to("nanometer").magnitude, [80, 120])
+    assert request.measures == ("Qsca", "Qext")
     copied_link = _copy_shared_link(dash_duo)
     restored = read_simulation(urlsplit(copied_link).query, "/experiment")
     assert restored["controls"].items() >= controls.items()
