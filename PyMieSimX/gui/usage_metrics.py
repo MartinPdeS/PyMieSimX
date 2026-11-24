@@ -94,6 +94,50 @@ def _update(*, home_page_visit_delta: int, experiment_run_delta: int, single_run
     return UsageMetrics()
 
 
+def save_page_visit(*, route: str) -> None:
+    """Record a public page visit when shared storage is configured."""
+    if not _use_postgres_backend():
+        return
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            _ensure_activity_table(cursor)
+            cursor.execute("INSERT INTO pymiesimx_page_visits (route) VALUES (%s)", (route,))
+            cursor.execute("""
+                DELETE FROM pymiesimx_page_visits
+                WHERE id < (SELECT id FROM pymiesimx_page_visits ORDER BY id DESC OFFSET 199 LIMIT 1)
+                """)
+    except Exception:
+        LOGGER.exception("Failed to record shared PyMieSimX page activity.")
+
+
+def load_page_visits() -> list[tuple[str, str]] | None:
+    """Return shared activity, or None when shared storage is unavailable."""
+    if not _use_postgres_backend():
+        return None
+    try:
+        with _connect_postgres() as connection, connection.cursor() as cursor:
+            _ensure_activity_table(cursor)
+            cursor.execute("""
+                SELECT to_char(visited_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') || ' UTC', route
+                FROM pymiesimx_page_visits ORDER BY id DESC LIMIT 200
+                """)
+            return cursor.fetchall()
+    except Exception:
+        LOGGER.exception("Failed to read shared PyMieSimX page activity.")
+        return None
+
+
+def _ensure_activity_table(cursor: Any) -> None:
+    """Create shared activity storage on first use."""
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pymiesimx_page_visits (
+            id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+            route TEXT NOT NULL,
+            visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """)
+
+
 def _use_postgres_backend() -> bool:
     backend = os.getenv(METRICS_BACKEND_ENV_VAR, "file").strip().lower()
     if backend != "postgres":

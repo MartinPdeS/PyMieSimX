@@ -31,12 +31,14 @@ def record_page_visit(*, route: str) -> None:
         visited_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
         with _recent_visits_lock:
             _recent_visits.appendleft((visited_at, route))
+        usage_metrics.save_page_visit(route=route)
 
 
 def build_recent_visits() -> html.Div:
     """Render the latest public page visits without collecting visitor identifiers."""
+    shared_visits = usage_metrics.load_page_visits()
     with _recent_visits_lock:
-        visits = tuple(_recent_visits)
+        visits = tuple(_recent_visits if shared_visits is None else shared_visits)
     if not visits:
         return html.Div("No public page visits recorded.")
     return html.Div(
@@ -156,7 +158,7 @@ def build_admin_page(token: str | None) -> html.Div:
             ),
             html.Section([
                 html.H2("Recent activity"),
-                html.P("Latest 200 public page visits recorded by this server process."),
+                html.P("Latest 200 public page visits. Without PostgreSQL, activity is limited to the current server process."),
                 html.Div(build_recent_visits(), id="admin-recent-visits"),
             ], className=Card.classes(color="blue", extra="admin-activity-card")),
         ],
