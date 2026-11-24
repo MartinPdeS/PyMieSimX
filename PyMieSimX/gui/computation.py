@@ -478,42 +478,35 @@ def run_experiment(
     measure: str | list[str],
 ) -> ExperimentResult:
     """Execute the selected experiment and serialize the result for Dash."""
-    LOGGER.debug(
-        "Starting experiment run source=%s scatterer=%s detector=%s measure=%s",
-        source_type,
-        scatterer_type,
-        detector_type,
-        measure,
+    request = prepare_experiment(
+        source_type=source_type, source_values=source_values,
+        scatterer_type=scatterer_type, scatterer_values=scatterer_values,
+        detector_type=detector_type, detector_values=detector_values, measure=measure,
     )
-    issues = validate_experiment_inputs(
-        source_type=source_type,
-        source_values=source_values,
-        scatterer_type=scatterer_type,
-        scatterer_values=scatterer_values,
-        detector_type=detector_type,
-        detector_values=detector_values,
-        measure=measure,
-    )
-    if issues:
-        raise ExperimentValidationError(issues)
+    return execute_experiment(request=request)
 
-    source_set = build_source_set(source_type, source_values)
-    scatterer_set = build_scatterer_set(scatterer_type, scatterer_values)
-    detector_set = build_detector_set(detector_type, detector_values)
 
-    LOGGER.debug("Source set built: %r", source_set)
-    LOGGER.debug("Scatterer set built: %r", scatterer_set)
-    LOGGER.debug("Detector set built: %r", detector_set)
+@dataclass(frozen=True)
+class PreparedExperiment:
+    """Validated PyMieSim inputs and selected outputs for one scan."""
 
+    source_set: Any
+    scatterer_set: Any
+    detector_set: Any
+    measures: tuple[str, ...]
+
+
+def execute_experiment(*, request: PreparedExperiment) -> ExperimentResult:
+    """Run a prepared scan and return the existing result payload."""
     setup = Setup(
-        scatterer_set=scatterer_set,
-        source_set=source_set,
-        detector_set=detector_set,
+        scatterer_set=request.scatterer_set,
+        source_set=request.source_set,
+        detector_set=request.detector_set,
     )
 
     LOGGER.debug("Experiment setup instantiated: %r", setup)
 
-    measures = normalize_measures(measure)
+    measures = list(request.measures)
     dataframe = setup.get(*measures, drop_unique_level=True)
     LOGGER.debug("Experiment returned dataframe with shape %s", getattr(dataframe, "shape", None))
     if hasattr(dataframe, "as_dataframe"):
@@ -612,13 +605,21 @@ def estimate_result_size(
         detector_type=detector_type,
         detector_values=detector_values,
     )
-    column_count = max(1, len(normalize_measures(measure))) + sum(
+    parameter_count = sum(
         len(field_groups.get(selected_type, ()))
         for field_groups, selected_type in (
             ((SOURCE_FIELDS, source_type), (SCATTERER_FIELDS, scatterer_type), (DETECTOR_FIELDS, detector_type))
         )
         if selected_type != "None"
     )
+    return _estimate_result_from_shape(
+        row_count=row_count, measure_count=len(normalize_measures(measure)), parameter_count=parameter_count,
+    )
+
+
+def _estimate_result_from_shape(*, row_count: int, measure_count: int, parameter_count: int) -> ResultSizeEstimate:
+    """Estimate payload cost from scan dimensions."""
+    column_count = max(1, measure_count) + parameter_count
     # A conservative JSON estimate: numeric values, units, column names, and
     # separators. The actual serialized size is checked after computation too.
     estimated_bytes = int(row_count * max(64, column_count * 32))
@@ -641,6 +642,45 @@ def validate_experiment_inputs(
     measure: str | list[str] | None,
 ) -> list[ValidationIssue]:
     """Validate all experiment fields and return actionable user-facing issues."""
+    issues, _ = _normalize_experiment(source_type=source_type, source_values=source_values, scatterer_type=scatterer_type, scatterer_values=scatterer_values, detector_type=detector_type, detector_values=detector_values, measure=measure)
+    return issues
+
+
+def prepare_experiment(
+    *,
+    source_type: str,
+    source_values: Dict[str, Any],
+    scatterer_type: str,
+    scatterer_values: Dict[str, Any],
+    detector_type: str,
+    detector_values: Dict[str, Any],
+    measure: str | list[str] | None,
+) -> PreparedExperiment:
+    """Validate and construct the inputs before a scan enters the queue."""
+    issues, sections = _normalize_experiment(source_type=source_type, source_values=source_values, scatterer_type=scatterer_type, scatterer_values=scatterer_values, detector_type=detector_type, detector_values=detector_values, measure=measure)
+    if issues:
+        raise ExperimentValidationError(issues)
+    return PreparedExperiment(
+        source_set=SOURCE_TYPES[source_type](**sections["source"]),
+        scatterer_set=SCATTERER_TYPES[scatterer_type](**sections["scatterer"]),
+        detector_set=None if detector_type == "None" else DETECTOR_TYPES[detector_type](**sections["detector"]),
+        measures=tuple(normalize_measures(measure)),
+    )
+
+
+def _normalize_experiment(
+    *,
+    source_type: str,
+    source_values: Dict[str, Any],
+    scatterer_type: str,
+    scatterer_values: Dict[str, Any],
+    detector_type: str,
+    detector_values: Dict[str, Any],
+    measure: str | list[str] | None,
+) -> tuple[list[ValidationIssue], dict[str, dict[str, Any]]]:
+    """Parse each field once and validate the resulting scan size."""
+    normalized: dict[str, dict[str, Any]] = {}
+    cardinalities: list[int] = []
     issues: list[ValidationIssue] = []
     sections = (
         ("source", SOURCE_FIELDS, source_type, source_values),
@@ -655,6 +695,7 @@ def validate_experiment_inputs(
             issues.append(ValidationIssue(section_name, f"Unknown configuration '{selected_type}'."))
             continue
 
+        parsed_fields = normalized[section_name] = {}
         for field in field_specs:
             raw_value = raw_values.get(field.name, field.default)
             empty = raw_value is None or str(raw_value).strip() == ""
@@ -667,6 +708,8 @@ def validate_experiment_inputs(
                 parsed_value = _parse_field_value(field.kind, raw_value, field.unit)
                 if field.name in _POSITIVE_FIELDS:
                     _validate_positive_field(field.name, parsed_value)
+                parsed_fields[field.name] = parsed_value
+                cardinalities.append(max(1, _value_cardinality(parsed_value)))
             except (TypeError, ValueError, KeyError) as error:
                 issues.append(ValidationIssue(field.name, str(error)))
 
@@ -680,14 +723,7 @@ def validate_experiment_inputs(
                 issues.append(ValidationIssue("measure", f"'{selected_measure}' is not available for this configuration."))
 
     if not issues:
-        sweep_size = estimate_sweep_size(
-            source_type=source_type,
-            source_values=source_values,
-            scatterer_type=scatterer_type,
-            scatterer_values=scatterer_values,
-            detector_type=detector_type,
-            detector_values=detector_values,
-        )
+        sweep_size = prod(cardinalities)
         if sweep_size > MAX_SWEEP_COMBINATIONS:
             issues.append(
                 ValidationIssue(
@@ -696,14 +732,9 @@ def validate_experiment_inputs(
                 )
             )
         else:
-            result_estimate = estimate_result_size(
-                source_type=source_type,
-                source_values=source_values,
-                scatterer_type=scatterer_type,
-                scatterer_values=scatterer_values,
-                detector_type=detector_type,
-                detector_values=detector_values,
-                measure=measures,
+            result_estimate = _estimate_result_from_shape(
+                row_count=sweep_size, measure_count=len(measures),
+                parameter_count=sum(len(groups[selected]) for _, groups, selected, _ in sections),
             )
             if result_estimate.estimated_bytes > MAX_RESULT_PAYLOAD_BYTES:
                 issues.append(
@@ -720,7 +751,7 @@ def validate_experiment_inputs(
                     result_estimate.estimated_bytes,
                 )
 
-    return issues
+    return issues, normalized
 
 
 def export_result_to_csv(result: dict[str, Any] | None) -> str:

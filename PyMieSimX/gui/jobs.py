@@ -3,18 +3,23 @@
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import logging
 from threading import Lock
 from uuid import uuid4
-from typing import Any
 
 from PyMieSimX.gui.models import ExperimentResult, JobSnapshot
-from PyMieSimX.gui.services import run_experiment
+from PyMieSimX.gui.computation import PreparedExperiment, execute_experiment
 
 
 LOGGER = logging.getLogger(__name__)
 MAX_RETAINED_JOBS = 32
+MAX_ACTIVE_JOBS = 8
+RESULT_RETENTION = timedelta(minutes=15)
+
+
+class ExperimentQueueFull(RuntimeError):
+    """Raised when all scan slots are occupied."""
 
 
 def _now() -> str:
@@ -41,13 +46,16 @@ class ExperimentJobManager:
         self._jobs: dict[str, _Job] = {}
         self._lock = Lock()
 
-    def submit(self, **kwargs: Any) -> str:
+    def submit(self, *, request: PreparedExperiment) -> str:
         """Submit one experiment and return its opaque job identifier."""
         job = _Job(job_id=uuid4().hex)
         with self._lock:
-            self._prune_locked()
+            active_jobs = sum(job.status in {"pending", "running"} for job in self._jobs.values())
+            if active_jobs >= MAX_ACTIVE_JOBS:
+                raise ExperimentQueueFull("The scan queue is full. Try again shortly.")
+            self._prune_locked(reserve_slot=True)
+            job.future = self._executor.submit(self._run, job.job_id, request)
             self._jobs[job.job_id] = job
-            job.future = self._executor.submit(self._run, job.job_id, kwargs)
         LOGGER.info("Submitted experiment job_id=%s queued_jobs=%d", job.job_id, len(self._jobs))
         return job.job_id
 
@@ -56,6 +64,7 @@ class ExperimentJobManager:
         if not job_id:
             return None
         with self._lock:
+            self._prune_locked()
             job = self._jobs.get(job_id)
             if job is None:
                 return None
@@ -82,14 +91,14 @@ class ExperimentJobManager:
         LOGGER.info("Cancelled experiment job_id=%s", job_id)
         return True
 
-    def _run(self, job_id: str, kwargs: dict[str, Any]) -> None:
+    def _run(self, job_id: str, request: PreparedExperiment) -> None:
         with self._lock:
             job = self._jobs[job_id]
             job.status = "running"
             job.started_at = _now()
         LOGGER.info("Started experiment job_id=%s", job_id)
         try:
-            result = run_experiment(**kwargs)
+            result = execute_experiment(request=request)
         except Exception as error:  # noqa: BLE001 - job boundary must retain failure state
             with self._lock:
                 job = self._jobs[job_id]
@@ -106,10 +115,17 @@ class ExperimentJobManager:
             job.finished_at = _now()
         LOGGER.info("Finished experiment job_id=%s rows=%d", job_id, result.get("row_count", 0))
 
-    def _prune_locked(self) -> None:
-        completed = [job for job in self._jobs.values() if job.status in {"succeeded", "failed", "cancelled"}]
-        for job in sorted(completed, key=lambda item: item.finished_at or item.submitted_at)[: max(0, len(self._jobs) - MAX_RETAINED_JOBS + 1)]:
-            self._jobs.pop(job.job_id, None)
+    def _prune_locked(self, *, reserve_slot: bool = False) -> None:
+        cutoff = (datetime.now(timezone.utc) - RESULT_RETENTION).isoformat()
+        completed = sorted(
+            (job for job in self._jobs.values() if job.finished_at is not None),
+            key=lambda job: job.finished_at or "",
+        )
+        excess = max(0, len(self._jobs) - MAX_RETAINED_JOBS + int(reserve_slot))
+        for index, job in enumerate(completed):
+            if index < excess or (job.finished_at or "") <= cutoff:
+                self._jobs.pop(job.job_id, None)
+
 
 
 experiment_jobs = ExperimentJobManager()

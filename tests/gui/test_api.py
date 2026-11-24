@@ -1,5 +1,7 @@
 """Tests for the public API and callback orchestration boundary."""
 
+from threading import Event
+import pytest
 import PyMieSimX
 from PyMieSimX._version import __version__ as documented_version
 
@@ -44,10 +46,10 @@ def test_experiment_callback_helper_returns_structured_failure():
 
 
 def test_background_job_manager_tracks_completion(monkeypatch):
-    monkeypatch.setattr(jobs_module, "run_experiment", lambda **_kwargs: {"row_count": 2, "rows": []})
+    monkeypatch.setattr(jobs_module, "execute_experiment", lambda **_kwargs: {"row_count": 2, "rows": []})
     manager = ExperimentJobManager(max_workers=1)
 
-    job_id = manager.submit(measure="Qsca")
+    job_id = manager.submit(request=None)
     snapshot = manager.snapshot(job_id)
     assert snapshot is not None
 
@@ -59,3 +61,20 @@ def test_background_job_manager_tracks_completion(monkeypatch):
     assert completed["status"] == "succeeded"
     assert completed["result"]["row_count"] == 2
     manager._executor.shutdown(wait=True)
+
+def test_scan_queue_rejects_new_work_at_capacity(monkeypatch):
+    """Free a queued slot by cancelling a pending scan."""
+    release_worker = Event()
+    monkeypatch.setattr(jobs_module, "MAX_ACTIVE_JOBS", 2)
+    monkeypatch.setattr(jobs_module, "execute_experiment", lambda **_: release_worker.wait(5) and {"row_count": 0})
+    manager = ExperimentJobManager(max_workers=1)
+    try:
+        manager.submit(request=None)
+        queued = manager.submit(request=None)
+        with pytest.raises(jobs_module.ExperimentQueueFull):
+            manager.submit(request=None)
+        assert manager.cancel(queued)
+        assert manager.submit(request=None)
+    finally:
+        release_worker.set()
+        manager._executor.shutdown(wait=True)

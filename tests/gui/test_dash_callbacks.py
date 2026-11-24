@@ -9,6 +9,7 @@ import plotly.graph_objects as go
 import pytest
 from dash import no_update
 
+from PyMieSimX.gui.pages.experiment import callbacks as scan_callbacks
 from PyMieSimX.gui import callbacks, usage_metrics
 from PyMieSimX.gui.callback_helpers import CallbackExecution
 from PyMieSimX.gui.interface import create_dash_app
@@ -73,8 +74,8 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     assert errors[0]
 
     cancelled = []
-    monkeypatch.setattr(callbacks.experiment_jobs, "cancel", lambda job_id: cancelled.append(job_id) or True)
-    monkeypatch.setattr(callbacks.experiment_jobs, "submit", lambda **_kwargs: "new-job")
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "cancel", lambda job_id: cancelled.append(job_id) or True)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "submit", lambda **_kwargs: "new-job")
     submit = _callback(application, "_submit_experiment")
     job, polling_disabled, run_disabled, status = submit(
         1,
@@ -92,7 +93,7 @@ def test_validation_submission_cancellation_and_polling(monkeypatch):
     assert _message(status).startswith("Queued.")
 
     result = {"rows": [{"Qsca": 1.0}], "columns": ["Qsca"], "parameter_columns": [], "measure": "Qsca", "units": {}, "row_count": 1}
-    monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: {
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "snapshot", lambda _job_id: {
         "job_id": "new-job", "status": "succeeded", "result": result, "error": None,
         "submitted_at": "now", "started_at": "now", "finished_at": "now",
     })
@@ -184,13 +185,13 @@ def test_multiple_measure_submission(monkeypatch):
         captured.update(kwargs)
         return "multi-job"
 
-    monkeypatch.setattr(callbacks.experiment_jobs, "submit", submit_job)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "submit", submit_job)
     args = (*_experiment_args(diameter="100,200")[:-1], ["Qsca", "Qabs", "Qext"])
     response = _callback(application, "_submit_experiment")(1, *args, None)
     assert response[0]["job_id"] == "multi-job"
     assert response[0]["inputs"][-1] == ["Qsca", "Qabs", "Qext"]
     assert response[1:3] == (False, True)
-    assert captured["measure"] == ["Qsca", "Qabs", "Qext"]
+    assert captured["request"].measures == ("Qsca", "Qabs", "Qext")
 
 
 def test_export_filename_uses_computed_measures_after_selection_changes():
@@ -213,7 +214,7 @@ def test_experiment_page_initialization_does_not_submit(monkeypatch, clicks):
     def unexpected_submit(**_kwargs):
         pytest.fail("Page initialization must not submit an experiment")
 
-    monkeypatch.setattr(callbacks.experiment_jobs, "submit", unexpected_submit)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "submit", unexpected_submit)
     submit = _callback(application, "_submit_experiment")
     assert submit(
         clicks,
@@ -228,7 +229,7 @@ def test_experiment_page_initialization_does_not_submit(monkeypatch, clicks):
 @pytest.mark.parametrize("job_data", [None, {"job_id": "missing-job"}])
 def test_missing_experiment_job_reenables_run(monkeypatch, job_data):
     application = create_dash_app()
-    monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: None)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "snapshot", lambda _job_id: None)
     poll = _callback(application, "_poll_experiment_job")
 
     response = poll(1, job_data, 2)
@@ -243,7 +244,7 @@ def test_missing_experiment_job_reenables_run(monkeypatch, job_data):
 @pytest.mark.parametrize("status", ["pending", "running", "failed", "cancelled"])
 def test_experiment_polling_button_state(monkeypatch, status):
     application = create_dash_app()
-    monkeypatch.setattr(callbacks.experiment_jobs, "snapshot", lambda _job_id: {
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "snapshot", lambda _job_id: {
         "job_id": "job", "status": status, "error": "failed" if status == "failed" else None,
     })
     poll = _callback(application, "_poll_experiment_job")
@@ -262,7 +263,7 @@ def test_rejected_experiment_shows_validation_error(monkeypatch):
     def unexpected_submit(**_kwargs):
         pytest.fail("Invalid input must not start a job")
 
-    monkeypatch.setattr(callbacks.experiment_jobs, "submit", unexpected_submit)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "submit", unexpected_submit)
     submit = _callback(application, "_submit_experiment")
     response = submit(1, *_experiment_args(wavelength="-1"), None)
     assert response[:3] == (None, True, False)
@@ -276,7 +277,7 @@ def test_submission_failure_is_visible_and_recoverable(monkeypatch):
     def fail_submit(**_kwargs):
         raise RuntimeError("Worker unavailable")
 
-    monkeypatch.setattr(callbacks.experiment_jobs, "submit", fail_submit)
+    monkeypatch.setattr(scan_callbacks.experiment_jobs, "submit", fail_submit)
     submit = _callback(application, "_submit_experiment")
     response = submit(1, *_experiment_args(), None)
     assert response[:3] == (None, True, False)
