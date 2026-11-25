@@ -1,0 +1,32 @@
+.pymiesimx-admin-login {
+    color: #142537;
+    background: #f2f6fa;
+    font: 1rem system-ui, sans-serif;
+}
+
+.pymiesimx-admin-login main {
+    max-width: 27rem;
+    margin: 10vh auto;
+    padding: 1.5rem;
+    background: white;
+    border: 1px solid #d9e2e8;
+    border-radius: .8rem;
+}
+
+.pymiesimx-admin-login form {
+    display: grid;
+    gap: .55rem;
+    margin: 1rem 0;
+}
+
+.pymiesimx-admin-login :is(input, button) {
+    font: inherit;
+    padding: .5rem;
+}
+
+.pymiesimx-admin-login button {
+    color: #fff;
+    background: #225bb1;
+    border: 1px solid #225bb1;
+    border-radius: .4rem;
+}

@@ -42,7 +42,10 @@ def client():
 
 
 @pytest.mark.parametrize("path", PAGE_METADATA)
-def test_direct_requests_have_unique_page_metadata(client, path):
+def test_direct_requests_have_unique_page_metadata(client, path, monkeypatch):
+    if path == "/admin":
+        monkeypatch.setenv("PYMIESIMX_ADMIN_TOKEN", "metadata-test")
+        client.post("/admin/login", data={"token": "metadata-test"})
     response = client.get(path)
     assert response.status_code == 200
     parser = HeadParser()

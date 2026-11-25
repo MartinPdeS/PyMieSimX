@@ -22,6 +22,7 @@ requirements:
     - pymiesim >=5.7.1,<6
     - pyoptik >=3.2.1,<4
     - dash >=4.1.0,<5
+    - itsdangerous >=2.1,<3
     - gunicorn >=23.0.0,<24  # [not win]
     - numpy >=2.0,<3
     - pandas >=2.2,<3

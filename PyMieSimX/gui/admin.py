@@ -7,8 +7,9 @@ from threading import Lock
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
-
 from dash import dcc, html
+from flask import Response, has_request_context, redirect, request
+from itsdangerous import BadData, URLSafeTimedSerializer
 
 from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.components import Card
@@ -16,6 +17,8 @@ from PyMieSimX.gui.visit_location import request_location
 
 
 ADMIN_TOKEN_ENV_VAR = "PYMIESIMX_ADMIN_TOKEN"
+ADMIN_COOKIE = "pymiesimx-admin"
+ADMIN_SESSION_SECONDS = 30 * 60
 REFRESH_INTERVAL_MILLISECONDS = 30_000
 
 
@@ -71,7 +74,76 @@ def is_admin_access_granted(provided_token: Any) -> bool:
     """Return whether the provided token exactly matches server configuration."""
     configured_token = os.getenv(ADMIN_TOKEN_ENV_VAR, "").strip()
     candidate_token = str(provided_token or "").strip()
-    return bool(configured_token and candidate_token and hmac.compare_digest(configured_token, candidate_token))
+    return bool(configured_token and candidate_token and hmac.compare_digest(configured_token.encode(), candidate_token.encode()))
+
+
+def _admin_serializer(*, token: str) -> URLSafeTimedSerializer:
+    """Build the signer used by all workers for administrator sessions."""
+    return URLSafeTimedSerializer(token, salt="pymiesimx-admin-session")
+
+
+def has_admin_session() -> bool:
+    """Verify the signed administrator cookie and its expiry on every request."""
+    token = os.getenv(ADMIN_TOKEN_ENV_VAR, "").strip()
+    if not token or not has_request_context():
+        return False
+    cookie = request.cookies.get(ADMIN_COOKIE)
+    if not cookie:
+        return False
+    try:
+        return (
+            _admin_serializer(token=token).loads(cookie, max_age=ADMIN_SESSION_SECONDS)
+            == "admin"
+        )
+    except BadData:
+        return False
+
+
+def admin_login() -> Response:
+    """Exchange a submitted administrator credential for a short-lived cookie."""
+    token = os.getenv(ADMIN_TOKEN_ENV_VAR, "").strip()
+    error = ""
+    status = 200
+    if not token:
+        error = "Administrator access is unavailable on this server."
+        status = 404
+    elif request.method == "POST":
+        if is_admin_access_granted(request.form.get("token", "")):
+            response = redirect("/admin", code=303)
+            response.set_cookie(
+                ADMIN_COOKIE,
+                _admin_serializer(token=token).dumps("admin"),
+                max_age=ADMIN_SESSION_SECONDS,
+                secure=os.getenv("RENDER") == "true" or request.is_secure,
+                httponly=True,
+                samesite="Strict",
+            )
+            response.headers["Cache-Control"] = "no-store"
+            return response
+        error = "The administrator token was incorrect."
+        status = 403
+
+    form = ""
+    if token:
+        form = """
+        <form method="post" action="/admin/login">
+            <label for="token">Administrator token</label>
+            <input id="token" name="token" type="password" autocomplete="current-password" required>
+            <button type="submit">Sign in</button>
+        </form>"""
+    return Response(
+        f"""<!doctype html>
+        <html lang="en"><head><meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="/assets/admin-login.css">
+        <title>Administrator sign-in · PyMieSimX</title></head>
+        <body class="pymiesimx-admin-login"><main><h1>Administrator sign-in</h1>
+        <p role="status">{error}</p>{form}
+        <a href="/">Return to PyMieSimX</a></main></body></html>""",
+        status=status,
+        mimetype="text/html",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 
 def collect_admin_dashboard_data() -> AdminDashboardData:
@@ -100,9 +172,9 @@ def dashboard_values(data: AdminDashboardData) -> tuple[str, str, str, str]:
     )
 
 
-def build_admin_page(token: str | None) -> html.Div:
+def build_admin_page(token: str | None = None) -> html.Div:
     """Build the hidden dashboard or an intentionally generic denial page."""
-    if not is_admin_access_granted(token):
+    if not has_admin_session() and not is_admin_access_granted(token):
         return html.Div(
             html.Section(
                 className=Card.classes(color="blue", extra="admin-access-card"),

@@ -251,7 +251,8 @@ page. Configure a server-side token with::
 
     PYMIESIMX_ADMIN_TOKEN=<a long random value>
 
-Then open ``/admin?token=<the same value>``. The page is intentionally absent
+Then open ``/admin`` and enter the token on the sign-in page. A successful
+sign-in grants access for 30 minutes. The page is intentionally absent
 from the public sidebar and refreshes its counters every 30 seconds.
 
 Recent activity shows the visit time, page and approximate location.

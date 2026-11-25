@@ -61,17 +61,36 @@ def test_admin_dashboard_loads_metrics_and_rechecks_token(monkeypatch):
     data = collect_admin_dashboard_data()
     assert dashboard_values(data)[:3] == ("12", "5", "7")
 
-    refresh = _callback(create_dash_app(), "_refresh_admin_dashboard")
-    assert refresh(0, 0, "?token=secret-token")[:3] == ("12", "5", "7")
-    assert refresh(0, 0, "?token=wrong") == (no_update, no_update, no_update, no_update)
+    application = create_dash_app()
+    refresh = _callback(application, "_refresh_admin_dashboard")
+    activity = _callback(application, "_refresh_admin_activity")
+    assert refresh(0, 0) == (no_update,) * 4
+    assert activity(0, 0) is no_update
+    with application.server.test_client() as client:
+        client.post("/admin/login", data={"token": "secret-token"})
+        client.get("/admin")
+        assert refresh(0, 0)[:3] == ("12", "5", "7")
+        assert activity(0, 0) is not no_update
+        monkeypatch.setenv(ADMIN_TOKEN_ENV_VAR, "rotated")
+        assert activity(0, 0) is no_update
 
 
-def test_admin_route_reads_token_from_query_string(monkeypatch):
+def test_admin_sign_in_and_redirect(monkeypatch):
+    """Exercise direct navigation, form submission and session-backed routing."""
     monkeypatch.setenv(ADMIN_TOKEN_ENV_VAR, "secret-token")
-    route = _callback(create_dash_app(), "_route_pages")
-
-    denied = route("/admin", "?token=wrong", 0, 0, 0, {"theme": "light"}, {})
-    allowed = route("/admin", "?token=secret-token", 0, 0, 0, {"theme": "light"}, {})
-
-    assert "admin-home-page-visits" not in _component_ids(denied[0])
-    assert "admin-home-page-visits" in _component_ids(allowed[0])
+    application = create_dash_app()
+    route = _callback(application, "_route_pages")
+    with application.server.test_client() as client:
+        assert client.get("/admin?token=secret-token").location == "/admin/login"
+        assert route("/admin", "?token=secret-token", 0, 0, 0, {}, {})[0].href == "/admin/login"
+        assert b"Administrator sign-in" in client.get("/admin/login").data
+        assert client.post("/admin/login", data={"token": "wrong"}).status_code == 403
+        response = client.post("/admin/login", data={"token": "secret-token"})
+        assert response.status_code == 303
+        assert response.location == "/admin"
+        assert "Max-Age=1800" in response.headers["Set-Cookie"]
+        assert client.get("/admin").status_code == 200
+        assert "admin-home-page-visits" in _component_ids(route("/admin", "", 0, 0, 0, {}, {})[0])
+        monkeypatch.delenv(ADMIN_TOKEN_ENV_VAR)
+        assert client.get("/admin/login").status_code == 404
+        assert client.get("/admin").location == "/admin/login"

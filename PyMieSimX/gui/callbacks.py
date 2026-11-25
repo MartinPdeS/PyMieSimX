@@ -3,7 +3,6 @@
 
 import logging
 from math import isfinite
-from urllib.parse import parse_qs
 
 from dash import ALL, MATCH, Dash, Input, Output, State, ctx, dcc, no_update
 
@@ -34,7 +33,7 @@ from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.sharing import register_sharing_callbacks, read_simulation, shared_setup, shared_plot_settings, restore_controls
 from PyMieSimX.gui.admin import (
     build_admin_page, build_recent_visits, collect_admin_dashboard_data, dashboard_values,
-    is_admin_access_granted, record_page_visit,
+    has_admin_session, record_page_visit,
 )
 from PyMieSimX.gui.services import (
     available_measures,
@@ -221,8 +220,9 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
                 LOGGER.exception("Failed to record PyMieSimX home-page visit metric.")
                 home_visits = float("nan")
         if route == "/admin":
-            token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
-            return build_page_with_footer(build_admin_page(token)), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
+            if not has_admin_session():
+                return dcc.Location(id="admin-sign-in-redirect", href="/admin/login", refresh=True), *active.values(), home_visits
+            return build_page_with_footer(build_admin_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
         if route == "/examples":
             active["examples"] += " active"
             return build_page_with_footer(build_examples_page()), *(active[key] for key in ("home", "experiment", "single", "documentation", "settings", "examples", "population")), home_visits
@@ -263,12 +263,10 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("admin-last-updated", "children"),
         Input("admin-refresh-interval", "n_intervals"),
         Input("admin-refresh-button", "n_clicks"),
-        State("url", "search"),
         prevent_initial_call=False,
     )
-    def _refresh_admin_dashboard(_n_intervals: int, _n_clicks: int, search: str | None):
-        token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
-        if not is_admin_access_granted(token):
+    def _refresh_admin_dashboard(_n_intervals: int, _n_clicks: int):
+        if not has_admin_session():
             return no_update, no_update, no_update, no_update
         return dashboard_values(collect_admin_dashboard_data())
 
@@ -276,13 +274,11 @@ def register_callbacks(app: Dash, default_measure_options: list[str]) -> None:
         Output("admin-recent-visits", "children"),
         Input("admin-refresh-interval", "n_intervals"),
         Input("admin-refresh-button", "n_clicks"),
-        State("url", "search"),
         prevent_initial_call=True,
     )
-    def _refresh_admin_activity(_n_intervals: int, _n_clicks: int, search: str | None):
+    def _refresh_admin_activity(_n_intervals: int, _n_clicks: int):
         """Refresh the visit history for authenticated administrators."""
-        token = parse_qs((search or "").lstrip("?")).get("token", [None])[0]
-        if not is_admin_access_granted(token):
+        if not has_admin_session():
             return no_update
         return build_recent_visits()
 

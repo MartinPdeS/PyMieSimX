@@ -8,8 +8,9 @@ from urllib.request import Request, urlopen
 import webbrowser
 
 from dash import Dash
-from flask import Flask, redirect
+from flask import Flask, redirect, request
 
+from PyMieSimX.gui.admin import admin_login, has_admin_session
 from PyMieSimX.gui.callbacks import register_callbacks
 from PyMieSimX.gui.layout import create_layout
 from PyMieSimX.gui.material_catalog import ensure_material_catalog
@@ -49,6 +50,17 @@ def create_dash_app() -> Dash:
         '<link rel="icon" type="image/svg+xml" href="/assets/pymiesim-favicon.svg?v=3">'
         '<link rel="shortcut icon" type="image/svg+xml" href="/assets/pymiesim-favicon.svg?v=3">',
     )
+    application.server.add_url_rule("/admin/login", view_func=admin_login, methods=["GET", "POST"])
+
+    @application.server.get("/admin", strict_slashes=False)
+    def admin_entry():
+        """Open the dashboard after administrator sign-in."""
+        if not has_admin_session():
+            return redirect("/admin/login")
+        if request.query_string or request.path.endswith("/"):
+            return redirect("/admin")
+        return application.index()
+
     _register_latest_download_route(application.server)
     initial_measures = available_measures("SphereSet", "PhotodiodeSet")
     application.layout = create_layout(initial_measures)
