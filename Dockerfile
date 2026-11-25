@@ -11,7 +11,7 @@ WORKDIR /app
 COPY . .
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir '.[geoip]' \
+    && python -m pip install --no-cache-dir . \
     && python -m PyOptik setup --no-progress
 
 EXPOSE 8050

@@ -39,7 +39,6 @@ Repository = "https://github.com/MartinPdeS/PyMieSimX"
 pymiesimx = "PyMieSimX.__main__:main"
 
 [project.optional-dependencies]
-geoip = ["maxminddb>=2.5"]
 release = ["martinpdes-maintenance==0.2.3"]
 testing = ["martinpdes-maintenance[testing]==0.2.3"]
 browser = [

@@ -7,7 +7,5 @@ services:
       - "127.0.0.1:${PYMIESIMX_PORT:-8050}:8050"
     environment:
       PYMIESIMX_ADMIN_TOKEN: "${PYMIESIMX_ADMIN_TOKEN:-}"
-      PYMIESIMX_GEOIP_DATABASE: /geoip/GeoLite2-City.mmdb
+      PYMIESIMX_IPINFO_TOKEN: "${PYMIESIMX_IPINFO_TOKEN:-}"
       PYMIESIMX_TRUSTED_PROXY_COUNT: "${PYMIESIMX_TRUSTED_PROXY_COUNT:-0}"
-    volumes:
-      - ./geoip:/geoip:ro

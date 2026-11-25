@@ -1,14 +1,44 @@
-"""Resolve approximate visit locations from a local GeoIP City database."""
+"""Resolve approximate visit locations using IPinfo."""
 
+import json
 import os
+from functools import lru_cache
+from http.client import HTTPException
 from ipaddress import ip_address
+from urllib.request import Request, urlopen
 from flask import has_request_context, request
+
+
+@lru_cache(maxsize=1024)
+def _lookup_location(*, address: str) -> str:
+    """Fetch and cache the city, region and country for a public IP address.
+
+    Parameters
+    ----------
+    address : str
+        Validated IPv4 or IPv6 address.
+
+    Returns
+    -------
+    str
+        Available location fields, or "Unavailable" for an unmatched address.
+    """
+    headers = {"Accept": "application/json"}
+    token = os.getenv("PYMIESIMX_IPINFO_TOKEN", "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    lookup = Request(f"https://ipinfo.io/{address}/json", headers=headers)
+    with urlopen(lookup, timeout=2) as response:
+        record = json.load(response)
+    if not isinstance(record, dict):
+        return "Unavailable"
+    parts = [record.get(key) for key in ("city", "region", "country")]
+    return ", ".join(part.strip() for part in parts if isinstance(part, str) and part.strip()) or "Unavailable"
 
 
 def request_location() -> str:
     """Return the available city, region and country for the current request."""
-    database_path = os.getenv("PYMIESIMX_GEOIP_DATABASE", "").strip()
-    if not database_path or not has_request_context():
+    if not has_request_context():
         return "Unavailable"
     try:
         proxy_count = int(os.getenv("PYMIESIMX_TRUSTED_PROXY_COUNT", "1" if os.getenv("RENDER") == "true" else "0"))
@@ -18,19 +48,8 @@ def request_location() -> str:
                 return "Unavailable"
             address = request.access_route[-proxy_count]
         parsed = ip_address(address or "")
-        if not parsed.is_global or parsed.is_multicast:
+        if not parsed.is_global or parsed.is_multicast or "%" in str(parsed):
             return "Unavailable"
-        # Local installations can run without the optional GeoIP reader.
-        import maxminddb
-
-        with maxminddb.open_database(database_path) as database:
-            record = database.get(str(parsed)) or {}
-        subdivisions = record.get("subdivisions") or [{}]
-        parts = (
-            record.get("city", {}).get("names", {}).get("en"),
-            subdivisions[-1].get("names", {}).get("en"),
-            record.get("country", {}).get("iso_code"),
-        )
-        return ", ".join(part for part in parts if part) or "Unavailable"
-    except (ImportError, OSError, ValueError, RuntimeError):
+        return _lookup_location(address=str(parsed))
+    except (OSError, HTTPException, ValueError):
         return "Unavailable"
