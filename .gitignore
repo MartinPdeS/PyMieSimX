@@ -19,3 +19,4 @@ docs/source/generated/
 !Makefile
 !tools/
 !tools/*.py
+/geoip/

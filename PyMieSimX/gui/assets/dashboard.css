@@ -4038,53 +4038,6 @@ html .single-workspace .representation-card {
     }
 }
 
-.admin-page {
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
-.admin-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.25rem;
-  font-size: 0.9rem;
-}
-
-.admin-metric-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.admin-metric-card {
-  padding: 1.5rem;
-}
-
-.admin-metric-value {
-  font-size: 2rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.admin-metric-label {
-  margin-top: 0.5rem;
-  opacity: 0.75;
-}
-
-.admin-access-card {
-  max-width: 540px;
-  margin: 3rem auto;
-  padding: 1.5rem;
-}
-
-@media (max-width: 760px) {
-  .admin-metric-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Ensemble Optics shares the workspace toolbar and collapsible side panels. */
 .population-workspace, .population-output { display: grid; gap: 20px; min-width: 0; }
 .population-page .field-block { margin-bottom: 14px; }

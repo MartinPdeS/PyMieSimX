@@ -94,14 +94,14 @@ def _update(*, home_page_visit_delta: int, experiment_run_delta: int, single_run
     return UsageMetrics()
 
 
-def save_page_visit(*, route: str) -> None:
+def save_page_visit(*, route: str, location: str = "Unavailable") -> None:
     """Record a public page visit when shared storage is configured."""
     if not _use_postgres_backend():
         return
     try:
         with _connect_postgres() as connection, connection.cursor() as cursor:
             _ensure_activity_table(cursor)
-            cursor.execute("INSERT INTO pymiesimx_page_visits (route) VALUES (%s)", (route,))
+            cursor.execute("INSERT INTO pymiesimx_page_visits (route, location) VALUES (%s, %s)", (route, location))
             cursor.execute("""
                 DELETE FROM pymiesimx_page_visits
                 WHERE id < (SELECT id FROM pymiesimx_page_visits ORDER BY id DESC OFFSET 199 LIMIT 1)
@@ -110,7 +110,7 @@ def save_page_visit(*, route: str) -> None:
         LOGGER.exception("Failed to record shared PyMieSimX page activity.")
 
 
-def load_page_visits() -> list[tuple[str, str]] | None:
+def load_page_visits() -> list[tuple[str, str, str | None]] | None:
     """Return shared activity, or None when shared storage is unavailable."""
     if not _use_postgres_backend():
         return None
@@ -118,7 +118,7 @@ def load_page_visits() -> list[tuple[str, str]] | None:
         with _connect_postgres() as connection, connection.cursor() as cursor:
             _ensure_activity_table(cursor)
             cursor.execute("""
-                SELECT to_char(visited_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') || ' UTC', route
+                SELECT to_char(visited_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') || ' UTC', route, location
                 FROM pymiesimx_page_visits ORDER BY id DESC LIMIT 200
                 """)
             return cursor.fetchall()
@@ -133,9 +133,17 @@ def _ensure_activity_table(cursor: Any) -> None:
         CREATE TABLE IF NOT EXISTS pymiesimx_page_visits (
             id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
             route TEXT NOT NULL,
+            location TEXT,
             visited_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
         """)
+
+    cursor.execute("""
+        SELECT 1 FROM pg_attribute
+        WHERE attrelid = 'pymiesimx_page_visits'::regclass AND attname = 'location' AND NOT attisdropped
+        """)
+    if cursor.fetchone() is None:
+        cursor.execute("ALTER TABLE pymiesimx_page_visits ADD COLUMN IF NOT EXISTS location TEXT")
 
 
 def _use_postgres_backend() -> bool:

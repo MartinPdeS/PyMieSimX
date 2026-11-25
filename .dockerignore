@@ -1,0 +1,7 @@
+*
+!pyproject.toml
+!README.rst
+!LICENSE
+!PyMieSimX/
+!PyMieSimX/**
+**/__pycache__/

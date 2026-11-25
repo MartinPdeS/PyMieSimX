@@ -12,6 +12,7 @@ from dash import dcc, html
 
 from PyMieSimX.gui import usage_metrics
 from PyMieSimX.gui.components import Card
+from PyMieSimX.gui.visit_location import request_location
 
 
 ADMIN_TOKEN_ENV_VAR = "PYMIESIMX_ADMIN_TOKEN"
@@ -21,7 +22,7 @@ REFRESH_INTERVAL_MILLISECONDS = 30_000
 _PUBLIC_PAGES = frozenset({
     "/", "/experiment", "/single", "/population", "/examples", "/documentation", "/settings",
 })
-_recent_visits: deque[tuple[str, str]] = deque(maxlen=200)
+_recent_visits: deque[tuple[str, str, str]] = deque(maxlen=200)
 _recent_visits_lock = Lock()
 
 
@@ -29,9 +30,10 @@ def record_page_visit(*, route: str) -> None:
     """Keep a bounded history of public page visits for this process."""
     if route in _PUBLIC_PAGES:
         visited_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        location = request_location()
         with _recent_visits_lock:
-            _recent_visits.appendleft((visited_at, route))
-        usage_metrics.save_page_visit(route=route)
+            _recent_visits.appendleft((visited_at, route, location))
+        usage_metrics.save_page_visit(route=route, location=location)
 
 
 def build_recent_visits() -> html.Div:
@@ -43,21 +45,14 @@ def build_recent_visits() -> html.Div:
         return html.Div("No public page visits recorded.")
     return html.Div(
         html.Table([
-            html.Thead(html.Tr([html.Th("Visited at"), html.Th("Page"), html.Th("Details")])),
+            html.Thead(html.Tr([html.Th("Visited at"), html.Th("Page"), html.Th("Location")])),
             html.Tbody([
                 html.Tr([
                     html.Td(visited_at),
                     html.Td(route),
-                    html.Td(html.Details([
-                        html.Summary("View details"),
-                        html.Dl([
-                            html.Dt("Page"), html.Dd(route),
-                            html.Dt("Visited at"), html.Dd(visited_at),
-                            html.Dt("Location"), html.Dd("Unavailable"),
-                        ]),
-                    ])),
+                    html.Td(location or "Unavailable"),
                 ])
-                for visited_at, route in visits
+                for visited_at, route, location in visits
             ]),
         ], className="admin-activity-table"),
         className="admin-activity-scroll",
@@ -130,14 +125,14 @@ def build_admin_page(token: str | None) -> html.Div:
         children=[
             dcc.Interval(id="admin-refresh-interval", interval=REFRESH_INTERVAL_MILLISECONDS, n_intervals=0),
             html.Section(
-                className="page-hero",
+                className="admin-header",
                 children=[
                     html.H1("Administration"),
-                    html.P("Server-side PyMieSimX usage metrics.", className="hero-text"),
+                    html.P("Server-side PyMieSimX usage metrics.", className="admin-description"),
                     html.Div(
                         [
                             html.Span(values[3], id="admin-last-updated"),
-                            html.Button("Refresh", id="admin-refresh-button", n_clicks=0, className="run-button"),
+                            html.Button("Refresh", id="admin-refresh-button", n_clicks=0, className="admin-refresh"),
                         ],
                         className="admin-toolbar",
                     ),
@@ -146,7 +141,7 @@ def build_admin_page(token: str | None) -> html.Div:
             html.Div(
                 [
                     html.Section(
-                        className=Card.classes(color="blue", extra="admin-metric-card"),
+                        className="admin-metric-card",
                         children=[
                             html.Div(value, id=value_id, className="admin-metric-value"),
                             html.Div(label, className="admin-metric-label"),
@@ -157,10 +152,12 @@ def build_admin_page(token: str | None) -> html.Div:
                 className="admin-metric-grid",
             ),
             html.Section([
-                html.H2("Recent activity"),
-                html.P("Latest 200 public page visits. Without PostgreSQL, activity is limited to the current server process."),
+                html.Header([
+                    html.H2("Recent activity"),
+                    html.P("Latest 200 public page visits. Without PostgreSQL, activity is limited to the current server process."),
+                ]),
                 html.Div(build_recent_visits(), id="admin-recent-visits"),
-            ], className=Card.classes(color="blue", extra="admin-activity-card")),
+            ], className="admin-activity-card"),
         ],
     )
 

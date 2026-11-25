@@ -1,11 +1,66 @@
-.admin-activity-card { padding: 1rem; }
+.page-content-stack.admin-page {
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+}
+
+.admin-header h1 { margin: 0; font-size: 1.75rem; }
+.admin-description { margin: .4rem 0 1rem; color: var(--muted); }
+.admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    color: var(--muted);
+    font-size: .88rem;
+}
+
+.admin-refresh {
+    padding: .35rem .75rem;
+    border: 1px solid currentColor;
+    border-radius: .4rem;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    cursor: pointer;
+}
+.admin-refresh:hover { background: var(--accent-soft); }
+
+.admin-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 1rem;
+}
+.admin-metric-card {
+    padding: 18px;
+    border: 1px solid rgba(13, 110, 253, .16);
+    border-radius: 12px;
+    background: rgba(13, 110, 253, .04);
+}
+.admin-metric-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+.admin-metric-label { margin-top: 6px; font-size: .92rem; color: var(--muted); }
+.admin-access-card { max-width: 540px; margin: 3rem auto; padding: 1.5rem; }
+
+.admin-activity-card {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: .75rem;
+    background: var(--panel);
+}
+.admin-activity-card > header {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid var(--line);
+}
+.admin-activity-card h2 { margin: 0; font-size: 1.05rem; }
+.admin-activity-card p { margin: .3rem 0 0; font-size: .9rem; color: var(--muted); }
+#admin-recent-visits { padding: 1rem; }
 .admin-activity-scroll { max-height: 32rem; overflow: auto; }
-.admin-activity-table { width: 100%; border-collapse: collapse; }
+.admin-activity-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .admin-activity-table :is(th, td) {
     padding: .55rem .7rem;
     text-align: left;
     vertical-align: top;
-    border-bottom: 1px solid currentColor;
+    border-bottom: 1px solid var(--line);
 }
-.admin-activity-table summary { cursor: pointer; }
-.admin-activity-table dl { margin-block: .5rem 0; }

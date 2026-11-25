@@ -253,3 +253,26 @@ page. Configure a server-side token with::
 
 Then open ``/admin?token=<the same value>``. The page is intentionally absent
 from the public sidebar and refreshes its counters every 30 seconds.
+
+Recent activity shows the visit time, page and approximate location. For city,
+region and country lookup, install the ``geoip`` extra and set
+``PYMIESIMX_GEOIP_DATABASE`` to the path of a local GeoLite2 City or GeoIP2
+City MMDB file. The activity history stores only the resulting location.
+Historical visits and addresses without a match display as unavailable.
+
+Behind a reverse proxy, set ``PYMIESIMX_TRUSTED_PROXY_COUNT`` to the number
+of trusted proxies that append addresses to ``X-Forwarded-For``. The
+default is one on Render and zero for direct connections.
+
+Docker Compose
+--------------
+
+From the checkout, run ``docker compose up --build`` and open
+``http://localhost:8050``. Set ``PYMIESIMX_PORT=8051`` to run alongside
+RosettaX on port 8050. To enable the admin page, export
+``PYMIESIMX_ADMIN_TOKEN`` before starting Compose.
+
+The image includes the GeoIP reader. Download the GeoLite2 City binary
+database from your MaxMind account, extract it, and place the file at
+``geoip/GeoLite2-City.mmdb`` in the checkout. Compose mounts that directory
+read-only. Localhost visits display as unavailable.
