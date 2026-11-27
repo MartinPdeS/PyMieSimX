@@ -74,7 +74,7 @@ no_implicit_optional = true
 exclude = "(^development/|^docs/)"
 
 [dependency-groups]
-readme = ["martinpdes-maintenance @ git+https://github.com/MartinPdeS/MartinPdeS-maintenance.git@af10cca99170e7e03225da3ca62f319213295582"]
+readme = ["martinpdes-maintenance @ git+https://github.com/MartinPdeS/MartinPdeS-maintenance.git@48acdf92a36a879e15ca76e4fc8ba9e8a79a23cf"]
 
 [tool.mps-maintenance]
 version-file = "PyMieSimX/_version.py"
