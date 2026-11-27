@@ -18,5 +18,7 @@ figure:
   caption: PyMieSimX home page with the Single Scatterer and Parameter Scan workspaces.
 quickstart:
   title: Calculate scattering efficiency in Python
-  description: Compute the scattering efficiency of a 500 nm sphere at a wavelength of 650 nm.
+  description: |
+    Compute the scattering efficiency of a 500 nm sphere at a wavelength of 650 nm.
+    With these inputs, the dimensionless scattering efficiency is approximately 1.629.
   source: docs/examples/sphere_efficiency.py

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "PyMieSimX"
 version = "0.4.8"
-description = "Graphical Dash interface for PyMieSim."
+description = "Interactive Mie scattering simulations for individual particles, parameter sweeps, and dilute particle populations."
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.rst"
@@ -74,7 +74,7 @@ no_implicit_optional = true
 exclude = "(^development/|^docs/)"
 
 [dependency-groups]
-readme = ["martinpdes-maintenance @ git+https://github.com/MartinPdeS/MartinPdeS-maintenance.git@d3b32c00ad0fc4b6a452cf424016378006c5f59d"]
+readme = ["martinpdes-maintenance @ git+https://github.com/MartinPdeS/MartinPdeS-maintenance.git@3f1160dc9eccab027ab891d7e3aedc1dd0ef53dd"]
 
 [tool.mps-maintenance]
 version-file = "PyMieSimX/_version.py"

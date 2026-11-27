@@ -12,6 +12,8 @@ PyMieSimX
 
    * - Badge
      - Status
+   * - Web app
+     - |mps-demo|
    * - Python versions
      - |mps-python|
    * - Documentation
@@ -31,7 +33,7 @@ PyMieSimX
    * - Latest Anaconda release
      - |mps-conda-release|
 
-Graphical Dash interface for PyMieSim.
+Interactive Mie scattering simulations for individual particles, parameter sweeps, and dilute particle populations.
 
 Explore how particle size, composition, and illumination change scattering with
 `PyMieSim <https://github.com/MartinPdeS/PyMieSim>`_. Open a setup from the
@@ -46,8 +48,6 @@ Opening a shared link reruns it with the receiving installation's solver and mat
 
 To run locally after installation, launch ``pymiesimx``. The first launch downloads
 PyOptik's refractive-index catalogue.
-
-`Live demo <https://pymiesim.onrender.com/>`_
 
 .. figure:: docs/source/_static/app-screenshot.png
 
@@ -80,6 +80,7 @@ Calculate scattering efficiency in Python
 -----------------------------------------
 
 Compute the scattering efficiency of a 500 nm sphere at a wavelength of 650 nm.
+With these inputs, the dimensionless scattering efficiency is approximately 1.629.
 
 .. code-block:: python
 
@@ -136,6 +137,10 @@ See the `license text <https://github.com/MartinPdeS/PyMieSimX/blob/HEAD/LICENSE
 .. |mps-downloads| image:: https://img.shields.io/pypi/dm/pymiesimx.svg
    :alt: Monthly PyPI downloads
    :target: https://pypistats.org/packages/pymiesimx
+
+.. |mps-demo| image:: https://img.shields.io/badge/Launch-PyMieSimX-2672d6.svg
+   :alt: Launch PyMieSimX
+   :target: https://pymiesim.onrender.com/
 
 .. |mps-docs| image:: https://github.com/MartinPdeS/PyMieSimX/actions/workflows/deploy_documentation.yml/badge.svg
    :alt: Documentation
