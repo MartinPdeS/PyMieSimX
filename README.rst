@@ -49,7 +49,7 @@ Opening a shared link reruns it with the receiving installation's solver and mat
 To run locally after installation, launch ``pymiesimx``. The first launch downloads
 PyOptik's refractive-index catalogue.
 
-.. figure:: docs/source/_static/app-screenshot.png
+.. figure:: https://raw.githubusercontent.com/MartinPdeS/PyMieSimX/HEAD/docs/source/_static/app-screenshot.png
 
    PyMieSimX home page with the Single Scatterer and Parameter Scan workspaces.
 
@@ -107,15 +107,21 @@ With these inputs, the dimensionless scattering efficiency is approximately 1.62
 Documentation
 -------------
 
-Read the `PyMieSimX documentation <https://martinpdes.github.io/PyMieSimX/>`__.
+Use the `PyMieSimX documentation <https://martinpdes.github.io/PyMieSimX/>`__ to work through
+examples and look up the inputs and return values of individual functions.
 
 Contributing
 ------------
 
-See the `contributing guide <https://github.com/MartinPdeS/PyMieSimX/blob/HEAD/CONTRIBUTING.md>`__.
+Bug reports, worked examples, and documentation corrections are welcome.
+To set up a development checkout and run the tests, follow the `contributing guide <https://github.com/MartinPdeS/PyMieSimX/blob/HEAD/CONTRIBUTING.md>`__.
 
 Contact
 -------
+
+For questions about using PyMieSimX in your research, get in touch below.
+If a calculation gives an unexpected result, include the package version
+and a small example that reproduces it.
 
 * `Martin Poinsinet de Sivry-Houle <mailto:martin.poinsinet.de.sivry@gmail.com?subject=PyMieSimX>`__
 
