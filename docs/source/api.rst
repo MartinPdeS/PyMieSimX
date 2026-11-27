@@ -17,6 +17,25 @@ notebooks, and automated workflows.
    PyMieSimX.api.estimate_result_size
    PyMieSimX.api.estimate_sweep_size
 
+Population example
+------------------
+
+Calculate bulk optical properties for a lognormal population and export the result::
+
+    from PyMieSimX import compute_population_optics, export_population_to_csv
+
+    result = compute_population_optics(
+        wavelength_nm=650,
+        material="1.5+0.01j",
+        medium="1.33",
+        distribution="lognormal",
+        diameter_nm=500,
+        width=1.2,
+        concentration=1e9,
+        concentration_basis="number",
+    )
+    csv_text = export_population_to_csv(result)
+
 API module
 ----------
 

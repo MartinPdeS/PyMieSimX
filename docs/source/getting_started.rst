@@ -37,24 +37,10 @@ queued or executing.
 Python API
 ----------
 
-The calculation layer is available without creating a Dash application::
+Calculate the scattering efficiency of one sphere without starting the dashboard.
 
-   from PyMieSimX import run_experiment
-
-   result = run_experiment(
-       source_type="GaussianSet",
-       source_values={
-           "wavelength": "650",
-           "polarization": "0",
-           "optical_power": "1e-3",
-           "numerical_aperture": "0.2",
-       },
-       scatterer_type="SphereSet",
-       scatterer_values={"diameter": "500", "material": "1.4", "medium": "1.0"},
-       detector_type="None",
-       detector_values={},
-       measure="Qsca",
-   )
+.. literalinclude:: ../examples/sphere_efficiency.py
+   :language: python
 
 See :doc:`api` for result-size validation, multiple measures, population
 optics, and CSV export helpers.

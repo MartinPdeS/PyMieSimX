@@ -34,3 +34,13 @@ to mean extinction cross section.
 
 Use dilute-population assumptions: particle interactions, multiple scattering,
 and host-medium absorption are outside this model.
+
+Source-model note
+-----------------
+
+The Gaussian source exposed by PyMieSimX is not a generalized Lorenz--Mie
+theory (GLMT) implementation. It is a convenience object for defining a
+Gaussian illumination through its numerical aperture and optical power in
+watts. The ``Gaussian`` and ``GaussianSet`` source options should therefore be
+interpreted as a practical source parameterization, not as a separate GLMT
+solver.

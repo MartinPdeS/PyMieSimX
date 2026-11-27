@@ -6,6 +6,21 @@ Releases use semantic version tags. Run `make patch`, `make minor`, or `make maj
 
 The Conda recipe is at `conda.recipe/meta.yaml`. Do not commit build artefacts, virtual environments, or caches.
 
+## Updating the README
+
+Edit `readme.yml` for project prose and `docs/examples/sphere_efficiency.py` for
+the example shared with the getting-started guide. From the checkout, use pip
+25.1 or newer to install the pinned generator:
+
+```sh
+python -m pip install --group readme
+make readme PYTHON=python
+mps-maintenance readme --check
+git diff -- README.rst
+```
+
+Commit the generated README alongside its inputs.
+
 ## Shared release versioning
 
 Versions are explicit in `[project].version`; builds never derive versions from

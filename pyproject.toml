@@ -34,6 +34,7 @@ classifiers = [
 ]
 
 [project.urls]
+Documentation = "https://martinpdes.github.io/PyMieSimX/"
 Repository = "https://github.com/MartinPdeS/PyMieSimX"
 
 [project.scripts]
@@ -71,6 +72,9 @@ warn_return_any = true
 warn_unused_ignores = true
 no_implicit_optional = true
 exclude = "(^development/|^docs/)"
+
+[dependency-groups]
+readme = ["martinpdes-maintenance @ git+https://github.com/MartinPdeS/MartinPdeS-maintenance.git@d3b32c00ad0fc4b6a452cf424016378006c5f59d"]
 
 [tool.mps-maintenance]
 version-file = "PyMieSimX/_version.py"

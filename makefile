@@ -8,6 +8,10 @@ quality:
 	$(PYTHON) -m ruff check PyMieSimX tests
 	$(PYTHON) -m mypy PyMieSimX/gui/parsing.py PyMieSimX/gui/schemas.py PyMieSimX/gui/models.py PyMieSimX/gui/jobs.py PyMieSimX/gui/callback_helpers.py PyMieSimX/gui/admin.py
 
+.PHONY: readme
+readme:
+	$(PYTHON) -m martinpdes_maintenance.cli readme
+
 test:
 	$(PYTHON) -m pytest
 

@@ -1,0 +1,22 @@
+introduction: |
+  Explore how particle size, composition, and illumination change scattering with
+  `PyMieSim <https://github.com/MartinPdeS/PyMieSim>`_. Open a setup from the
+  **Examples** page, adjust its inputs, and select **Run**.
+
+  * **Single Scatterer** shows the angular scattering, polarization, and fields of one particle.
+  * **Parameter Scan** sweeps source, scatterer, or detector parameters and compares the resulting measures.
+  * **Ensemble Optics** averages optical properties over a dilute population of spheres with a chosen size distribution and concentration.
+
+  Export results as CSV or use **Copy simulation link** to share the setup.
+  Opening a shared link reruns it with the receiving installation's solver and material data.
+
+  To run locally after installation, launch ``pymiesimx``. The first launch downloads
+  PyOptik's refractive-index catalogue.
+demo: https://pymiesim.onrender.com/
+figure:
+  path: docs/source/_static/app-screenshot.png
+  caption: PyMieSimX home page with the Single Scatterer and Parameter Scan workspaces.
+quickstart:
+  title: Calculate scattering efficiency in Python
+  description: Compute the scattering efficiency of a 500 nm sphere at a wavelength of 650 nm.
+  source: docs/examples/sphere_efficiency.py
